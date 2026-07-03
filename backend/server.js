@@ -13,11 +13,7 @@ app.use(helmet({
   contentSecurityPolicy: false
 }));
 
-const allowedOrigins = ['http://localhost:5173', 'file://'];
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' })); // Support base64 image uploads
 
