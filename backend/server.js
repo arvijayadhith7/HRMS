@@ -1,0 +1,48 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const path = require('path');
+
+// Supabase handles DB connection via .env now
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Helmet config: Allow unsafe-inline for Dev and styles, disable contentSecurityPolicy in Dev mode if needed
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
+
+const allowedOrigins = ['http://localhost:5173', 'file://'];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(morgan('dev'));
+app.use(express.json({ limit: '10mb' })); // Support base64 image uploads
+
+// Routes
+app.use('/api/auth',          require('./routes/auth'));
+app.use('/api/employees', require('./routes/employees'));
+app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/leave', require('./routes/leave'));
+app.use('/api/payroll', require('./routes/payroll'));
+app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/announcements', require('./routes/announcements'));
+app.use('/api/recruitment', require('./routes/recruitment'));
+app.use('/api/reports', require('./routes/reports'));
+app.use('/api/settings', require('./routes/settings'));
+
+// New HR Modules
+app.use('/api/performance', require('./routes/performance'));
+app.use('/api/training', require('./routes/training'));
+app.use('/api/assets', require('./routes/assets'));
+app.use('/api/expenses', require('./routes/expenses'));
+app.use('/api/documents', require('./routes/documents'));
+app.use('/api/exit', require('./routes/exit'));
+
+app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '1.0.0' }));
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[VirtualNest Backend] Running on http://0.0.0.0:${PORT}`);
+});

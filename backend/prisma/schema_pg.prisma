@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int            @id @default(autoincrement())
+  username     String         @unique
+  email        String         @unique
+  passwordHash String
+  role         String         @default("employee")
+  createdAt    DateTime       @default(now())
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Employee {
+  id                Int          @id @default(autoincrement())
+  empId             String       @unique
+  firstName         String
+  lastName          String
+  email             String       @unique
+  phone             String?
+  department        String
+  designation       String
+  joinDate          DateTime
+  salary            Float
+  status            String       @default("active")
+  photo             String?
+  reportingManager  String?
+  address           String?
+  emergencyContact  String?
+  bankDetails       String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  payrolls          Payroll[]
+  leaves            Leave[]
+  attendances       Attendance[]
+  tasks             Task[]       @relation("AssignedTasks")
+  createdTasks      Task[]       @relation("CreatedTasks")
+  announcements     Announcement[]
+  jobOpenings       JobOpening[]
+  performanceReviews PerformanceReview[]
+  assets            Asset[]
+  expenses          ExpenseClaim[]
+  documents         Document[]
+  exitRecord        ExitRecord?
+}
+
+model Payroll {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int
+  month       Int
+  year        Int
+  basicSalary Float
+  hra         Float    @default(0)
+  allowances  Float    @default(0)
+  deductions  Float    @default(0)
+  netSalary   Float
+  status      String   @default("pending")
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  employee    Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Leave {
+  id         Int      @id @default(autoincrement())
+  employeeId Int
+  leaveType  String
+  fromDate   DateTime
+  toDate     DateTime
+  reason     String?
+  status     String   @default("pending")
+  appliedAt  DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Attendance {
+  id         Int      @id @default(autoincrement())
+  employeeId Int
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     String   @default("present")
+  createdAt  DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  status      String    @default("pending")
+  priority    String    @default("medium")
+  assignedTo  Int?
+  assignedBy  Int?
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  employee    Employee? @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  assigner    Employee? @relation("CreatedTasks", fields: [assignedBy], references: [id])
+}
+
+model Announcement {
+  id        Int       @id @default(autoincrement())
+  title     String
+  content   String
+  priority  String    @default("normal")
+  isPinned  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  createdBy Int?
+  creator   Employee? @relation(fields: [createdBy], references: [id])
+}
+
+model Setting {
+  id    Int     @id @default(autoincrement())
+  key   String  @unique
+  value String?
+}
+
+model JobOpening {
+  id          Int       @id @default(autoincrement())
+  title       String
+  department  String
+  description String
+  requirements String
+  status      String    @default("open") // open, closed, on-hold
+  postedBy    Int?
+  postedAt    DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  creator     Employee? @relation(fields: [postedBy], references: [id])
+  candidates  Candidate[]
+}
+
+model Candidate {
+  id            Int       @id @default(autoincrement())
+  jobId         Int
+  firstName     String
+  lastName      String
+  email         String
+  phone         String?
+  resumeUrl     String?
+  status        String    @default("applied") // applied, screening, interview, offer, hired, rejected
+  notes         String?
+  appliedAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  job           JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model PerformanceReview {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int
+  reviewerId  Int
+  period      String
+  goals       String
+  kpis        String
+  rating      Int
+  comments    String?
+  createdAt   DateTime @default(now())
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model TrainingProgram {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  duration    String
+  instructor  String?
+  createdAt   DateTime @default(now())
+}
+
+model Asset {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int?
+  name        String
+  type        String
+  serialNo    String   @unique
+  assignedAt  DateTime?
+  status      String   @default("available") // available, assigned, maintenance
+  employee    Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+}
+
+model ExpenseClaim {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int
+  title       String
+  amount      Float
+  category    String
+  receiptUrl  String?
+  status      String   @default("pending") // pending, approved, rejected, paid
+  createdAt   DateTime @default(now())
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int
+  title       String
+  type        String   // id_proof, contract, certificate
+  fileUrl     String
+  uploadedAt  DateTime @default(now())
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model ExitRecord {
+  id              Int      @id @default(autoincrement())
+  employeeId      Int      @unique
+  resignationDate DateTime
+  lastWorkingDay  DateTime
+  reason          String
+  interviewNotes  String?
+  fnfStatus       String   @default("pending")
+  createdAt       DateTime @default(now())
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
