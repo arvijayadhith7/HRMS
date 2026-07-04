@@ -12,6 +12,7 @@ import {
   useSpring,
   AnimatePresence,
   type MotionValue,
+  type Variants,
 } from 'framer-motion';
 import { Lock, Mail, AlertCircle, ArrowRight, Fingerprint } from 'lucide-react';
 
@@ -182,7 +183,7 @@ export default function LoginPage() {
   }, [form]);
 
   // ─── Stagger animation variants ───
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: {},
     visible: {
       transition: {
@@ -192,7 +193,7 @@ export default function LoginPage() {
     },
   };
 
-  const childVariants = {
+  const childVariants: Variants = {
     hidden: { opacity: 0, y: 25 },
     visible: {
       opacity: 1,
