@@ -163,8 +163,8 @@ export default function LoginPage() {
       // Success animation
       setShowSuccess(true);
       setTimeout(() => router.push('/dashboard'), 1400);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
       setShakeCard(true);
       setOrbFlashRed(true);
       setTimeout(() => setShakeCard(false), 600);
