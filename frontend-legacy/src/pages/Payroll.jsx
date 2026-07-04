@@ -75,73 +75,121 @@ export default function Payroll() {
 
   const exportPayslipPDF = (p) => {
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-    const primaryColor = [17, 24, 39]; 
-    const secondaryColor = [75, 85, 99]; 
+    
+    // Top border line
+    doc.setLineWidth(0.3);
+    doc.line(15, 20, 195, 20);
 
-    doc.setFillColor(17, 24, 39);
-    doc.rect(0, 0, 210, 45, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.text('VIRTUALNEST HRMS', 15, 20);
+    // Header Title
+    doc.setTextColor(92, 45, 145); // Purple
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('EMPLOYEE PAYSLIP', 15, 32);
 
-    doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(200, 200, 200);
-    doc.text('Enterprise Human Resource Management System', 15, 27);
+    // Logo (Varsa Academy approximation)
+    doc.setFontSize(18);
+    doc.setTextColor(76, 175, 80); // Green
+    doc.text('Varsa', 135, 32);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Academy', 156, 32);
+    
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'normal');
+    // Using letter-spacing by adding spaces
+    doc.text('L E A R N  I T . E A R N  I T', 142, 38);
 
-    doc.setFillColor(243, 244, 246);
-    doc.rect(15, 55, 180, 15, 'F');
-    doc.setTextColor(...primaryColor);
-    doc.setFontSize(12);
-    doc.setFont('Helvetica', 'bold');
-    doc.text(`SALARY PAYSLIP — ${getMonthName(p.month).toUpperCase()} ${p.year}`, 20, 64);
+    // Employee Details Section
+    let startY = 45;
+    doc.setLineWidth(0.1);
+    
+    const drawDetailsRow = (label, value, y) => {
+      doc.rect(15, y, 180, 8); // full width row
+      doc.line(75, y, 75, y + 8); // vertical divider
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(label, 17, y + 5.5);
+      doc.text(value, 77, y + 5.5);
+    };
 
-    doc.setTextColor(...secondaryColor);
-    doc.setFontSize(10);
-    doc.text('Employee Information', 15, 85);
-    doc.line(15, 87, 195, 87);
-    doc.setFont('Helvetica', 'normal');
-    doc.text(`Employee Name: ${p.employee.firstName} ${p.employee.lastName}`, 15, 95);
-    doc.text(`Employee ID: ${p.employee.empId}`, 15, 102);
-    doc.text(`Department: ${p.employee.department}`, 15, 109);
-    doc.text(`Designation: ${p.employee.designation}`, 15, 116);
-    doc.text(`Email Address: ${p.employee.email}`, 110, 95);
-    doc.text(`Payment Status: ${p.status.toUpperCase()}`, 110, 102);
-    if (p.paidAt) {
-      doc.text(`Paid Date: ${new Date(p.paidAt).toLocaleDateString()}`, 110, 109);
-    }
+    drawDetailsRow('Employee Name', `${p.employee.firstName} ${p.employee.lastName}`.toUpperCase(), startY);
+    drawDetailsRow('Employee ID', p.employee.empId, startY + 8);
+    drawDetailsRow('Designation', p.employee.designation, startY + 16);
+    drawDetailsRow('Department', p.employee.department || '', startY + 24);
+    
+    const monthStr = `${getMonthName(p.month).substring(0, 3)}-${p.year.toString().substring(2)}`;
+    drawDetailsRow('Month', monthStr, startY + 32);
 
-    doc.setFont('Helvetica', 'bold');
-    doc.text('Earnings & Allowance breakdown', 15, 135);
-    doc.line(15, 137, 100, 137);
-    doc.setFont('Helvetica', 'normal');
-    doc.text(`Basic Salary:`, 15, 145);
-    doc.text(`Rs. ${p.basicSalary.toLocaleString('en-IN')}`, 75, 145, { align: 'right' });
-    doc.text(`HRA Allowance:`, 15, 152);
-    doc.text(`Rs. ${p.hra.toLocaleString('en-IN')}`, 75, 152, { align: 'right' });
-    doc.text(`Other Allowances:`, 15, 159);
-    doc.text(`Rs. ${p.allowances.toLocaleString('en-IN')}`, 75, 159, { align: 'right' });
+    // Gap
+    startY += 48;
 
-    doc.setFont('Helvetica', 'bold');
-    doc.text('Deductions', 110, 135);
-    doc.line(110, 137, 195, 137);
-    doc.setFont('Helvetica', 'normal');
-    doc.text(`Leave/Unpaid Deductions:`, 110, 145);
-    doc.text(`Rs. ${p.deductions.toLocaleString('en-IN')}`, 190, 145, { align: 'right' });
+    // Earnings/Deductions Table
+    const drawSalaryRow = (col1, col2, col3, col4, y, isHeader = false, isBold = false) => {
+      doc.rect(15, y, 180, 8);
+      // Vertical lines
+      doc.line(75, y, 75, y + 8);
+      doc.line(115, y, 115, y + 8);
+      doc.line(160, y, 160, y + 8);
 
-    doc.setFillColor(243, 244, 246);
-    doc.rect(15, 175, 180, 20, 'F');
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('NET TAKE-HOME SALARY:', 20, 187);
-    doc.setTextColor(...primaryColor);
-    doc.text(`INR ${p.netSalary.toLocaleString('en-IN')}`, 190, 187, { align: 'right' });
+      if (isHeader) {
+        doc.setTextColor(92, 45, 145);
+        doc.setFont('helvetica', 'bold');
+      } else if (isBold) {
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+      } else {
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+      }
 
-    doc.setTextColor(118, 119, 123);
-    doc.setFontSize(8);
-    doc.setFont('Helvetica', 'italic');
-    doc.text('This is a computer-generated payslip created by HRMS Enterprise.', 15, 260);
+      doc.setFontSize(10);
+      
+      // Col 1
+      doc.text(col1, 17, y + 5.5);
+      
+      // Col 2
+      if (col2) {
+         if (isHeader) {
+           doc.text(col2, 95, y + 5.5, { align: 'center' });
+         } else {
+           doc.setFont('helvetica', 'normal');
+           doc.text('₹', 77, y + 5.5);
+           if (isBold) doc.setFont('helvetica', 'bold');
+           doc.text(col2, 113, y + 5.5, { align: 'right' });
+         }
+      }
+
+      // Col 3
+      doc.text(col3, 117, y + 5.5);
+
+      // Col 4
+      if (col4) {
+         if (isHeader) {
+           doc.text(col4, 177, y + 5.5, { align: 'center' });
+         } else {
+           doc.setFont('helvetica', 'normal');
+           doc.text('₹', 162, y + 5.5);
+           if (isBold) doc.setFont('helvetica', 'bold');
+           doc.text(col4, 193, y + 5.5, { align: 'right' });
+         }
+      }
+    };
+
+    const formatNum = (num) => num === 0 ? '-' : num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    drawSalaryRow('EARNINGS', 'Amount', 'DEDUCTIONS', 'Amount', startY, true);
+    
+    drawSalaryRow('Basic Salary', formatNum(p.basicSalary), '', '', startY + 8);
+    drawSalaryRow('HRA', formatNum(p.hra), 'Other Deduction', formatNum(p.deductions), startY + 16);
+    drawSalaryRow('Dearness Allowance (DA)', formatNum(0), '', '', startY + 24);
+    drawSalaryRow('Other Allowance', formatNum(p.allowances), 'Total Deductions (B)', formatNum(p.deductions), startY + 32);
+    
+    const grossSalary = p.basicSalary + p.hra + p.allowances;
+    drawSalaryRow('Gross Salary (A)', formatNum(grossSalary), '', '-', startY + 40, false, true);
+
+    // Gap of 8 before Net Salary (No borders drawn for gap row)
+    drawSalaryRow('Net Salary', formatNum(p.netSalary), 'Deduction', '-', startY + 56, false, true);
 
     doc.save(`Payslip_${p.employee.empId}_${getMonthName(p.month)}_${p.year}.pdf`);
   };
