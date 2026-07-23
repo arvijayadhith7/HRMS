@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Analytics } from '@vercel/analytics/react';
 import PrivateRoute from './components/PrivateRoute';
 import QueriesBox from './components/QueriesBox';
 import { AuthProvider } from './hooks/useAuth';
@@ -102,6 +103,7 @@ export default function App() {
       <BrowserRouter>
         <AppRoutes />
         <QueriesBox />
+        <Analytics />
       </BrowserRouter>
     </AuthProvider>
   );
