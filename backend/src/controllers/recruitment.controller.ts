@@ -1,19 +1,17 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db';
 import { AppError } from '../utils/appError';
 
-export const createJob = async (req: Request, res: Response, next: NextFunction) => {
+export const createJobOpening = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
-    const { title, description, departmentId, locationId, status } = req.body;
+    const { title, description, department, requirements, status } = req.body;
 
-    const job = await prisma.recruitmentJob.create({
+    const job = await prisma.jobOpening.create({
       data: {
-        companyId,
         title,
         description,
-        departmentId,
-        locationId,
+        department,
+        requirements,
         status: status || 'OPEN'
       }
     });
@@ -24,16 +22,14 @@ export const createJob = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
-export const getJobs = async (req: Request, res: Response, next: NextFunction) => {
+export const getJobOpenings = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
     
-    const jobs = await prisma.recruitmentJob.findMany({
-      where: { companyId, deletedAt: null },
+    const jobs = await prisma.jobOpening.findMany({
       include: {
-        candidates: { select: { id: true, stage: true } }
+        candidates: { select: { id: true, status: true } }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { postedAt: 'desc' }
     });
 
     res.status(200).json({ status: 'success', data: { jobs } });
@@ -52,7 +48,7 @@ export const applyForJob = async (req: Request, res: Response, next: NextFunctio
     const candidate = await prisma.candidate.create({
       data: {
         companyId,
-        jobId,
+        jobId: Number(jobId),
         firstName,
         lastName,
         email,
@@ -70,16 +66,15 @@ export const applyForJob = async (req: Request, res: Response, next: NextFunctio
 
 export const updateCandidateStage = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
-    const { id } = req.params;
-    const { stage } = req.body;
+    const { id: candidateId } = req.params;
+    const { status } = req.body;
 
-    const candidate = await prisma.candidate.findFirst({ where: { id, companyId } });
+    const candidate = await prisma.candidate.findFirst({ where: { id: Number(candidateId) } });
     if (!candidate) return next(new AppError('Candidate not found', 404));
 
     const updated = await prisma.candidate.update({
-      where: { id },
-      data: { stage }
+      where: { id: Number(candidateId) },
+      data: { status }
     });
 
     res.status(200).json({ status: 'success', data: { candidate: updated } });

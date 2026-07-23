@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db';
 
 export const askAssistant = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
+    const { companyId } = (req as any).user || {};
     const { query } = req.body;
 
     // Simulated AI Response logic
@@ -13,12 +13,12 @@ export const askAssistant = async (req: Request, res: Response, next: NextFuncti
       const today = new Date();
       today.setUTCHours(0, 0, 0, 0);
       const presentCount = await prisma.attendance.count({
-        where: { companyId, date: today, status: 'PRESENT' }
+        where: { date: today, status: 'PRESENT' }
       });
       reply = `Today's attendance looks good! You have ${presentCount} employees present right now.`;
     } else if (query.toLowerCase().includes('leave')) {
-      const pendingLeaves = await prisma.leaveRequest.count({
-        where: { companyId, status: 'PENDING' }
+      const pendingLeaves = await prisma.leave.count({
+        where: { status: 'pending' }
       });
       reply = `You currently have ${pendingLeaves} pending leave requests to review.`;
     }

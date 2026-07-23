@@ -171,7 +171,7 @@ export default function Reports() {
           </motion.div>
 
           {/* Leave Type Indexes */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-surface border border-border rounded-xl shadow-sm p-6 lg:col-span-2">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-surface border border-border rounded-xl shadow-sm p-6 lg:col-span-2 min-w-0">
             <h4 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-6">
               <PieChart className="w-5 h-5 text-warning" />
               <span>Leave Utilization Ledger Counts</span>

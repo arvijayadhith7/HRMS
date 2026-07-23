@@ -12,7 +12,7 @@ export default function AnnouncementsAdmin() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
-    title: '', content: '', type: 'news', isPinned: false
+    title: '', content: '', type: 'news', isPinned: false, photo: ''
   });
 
   const fetchAnnouncements = async () => {
@@ -71,7 +71,7 @@ export default function AnnouncementsAdmin() {
         
         <button
           onClick={() => {
-            setFormData({ title: '', content: '', type: 'news', isPinned: false });
+            setFormData({ title: '', content: '', type: 'news', isPinned: false, photo: '' });
             setShowModal(true);
           }}
           className="flex items-center justify-center space-x-2 bg-primary hover:bg-opacity-90 text-white font-bold px-5 py-2.5 rounded-lg transition-all shadow-sm"
@@ -111,6 +111,11 @@ export default function AnnouncementsAdmin() {
                     </span>
                   </div>
                   <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{ann.content}</p>
+                  {ann.photo && (
+                    <div className="mt-4 max-w-xl rounded-xl overflow-hidden border border-border shadow-sm bg-background">
+                      <img src={ann.photo} alt="Attachment" className="max-h-[300px] w-auto max-w-full object-contain mx-auto" />
+                    </div>
+                  )}
                 </div>
 
                 <button 
@@ -146,6 +151,38 @@ export default function AnnouncementsAdmin() {
               <div>
                 <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Content / Message</label>
                 <textarea required rows={6} value={formData.content} onChange={e => setFormData(p => ({ ...p, content: e.target.value }))} className="w-full px-4 py-3 bg-background border border-border text-text-primary text-sm rounded-xl outline-none focus:border-primary transition-colors resize-none"></textarea>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Photo Attachment (Optional)</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setFormData(prev => ({ ...prev, photo: reader.result }));
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-background border border-border text-text-primary text-sm rounded-xl outline-none focus:border-primary transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" 
+                />
+                {formData.photo && (
+                  <div className="mt-4 relative w-40 h-24 rounded-lg overflow-hidden border border-border bg-background">
+                    <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => setFormData(prev => ({ ...prev, photo: '' }))} 
+                      className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition-colors"
+                      title="Remove Photo"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-6">

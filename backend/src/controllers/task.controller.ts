@@ -1,22 +1,21 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db';
 import { AppError } from '../utils/appError';
 
 export const createTask = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId, id: assignedById } = req.user as any;
-    const { title, description, priority, dueDate, assignedToId } = req.body;
+    const { id: assignedBy } = (req as any).user;
+    const { title, description, priority, dueDate, assignedTo } = req.body;
 
     const task = await prisma.task.create({
       data: {
-        companyId,
         title,
         description,
         priority,
         status: 'TODO',
         dueDate: new Date(dueDate),
-        assignedToId,
-        assignedById
+        assignedTo,
+        assignedBy
       }
     });
 
@@ -28,13 +27,14 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
 
 export const getTasks = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
+    const { employeeId } = (req as any).user;
     
     const tasks = await prisma.task.findMany({
-      where: { companyId, deletedAt: null },
+      where: {
+        assignedTo: Number(employeeId)
+      },
       include: {
-        assignee: { select: { firstName: true, lastName: true, photo: true } },
-        assigner: { select: { email: true } }
+        assigner: { select: { id: true, firstName: true, lastName: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -47,14 +47,14 @@ export const getTasks = async (req: Request, res: Response, next: NextFunction) 
 
 export const getMyTasks = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId, employeeId } = req.user as any;
+    const { employeeId } = (req as any).user;
 
     if (!employeeId) return next(new AppError('No employee profile linked', 400));
     
     const tasks = await prisma.task.findMany({
-      where: { companyId, assignedToId: employeeId, deletedAt: null },
+      where: { assignedTo: employeeId },
       include: {
-        assigner: { select: { email: true } }
+        assigner: { select: { id: true, firstName: true, lastName: true } }
       },
       orderBy: { dueDate: 'asc' }
     });
@@ -67,17 +67,27 @@ export const getMyTasks = async (req: Request, res: Response, next: NextFunction
 
 export const updateTaskStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
+    const { companyId } = (req as any).user;
     const { id } = req.params;
     const { status } = req.body;
 
-    const task = await prisma.task.findFirst({ where: { id, companyId } });
+    const task = await prisma.task.findFirst({ where: { id: Number(id) } });
     if (!task) return next(new AppError('Task not found', 404));
 
     const updated = await prisma.task.update({
-      where: { id },
+      where: { id: Number(id) },
       data: { status }
     });
+
+    // A10/B6: Award 10 points on task completion
+    if (status === 'COMPLETED' || status === 'completed') {
+      if (task.assignedTo) {
+        await prisma.employee.update({
+          where: { id: task.assignedTo },
+          data: { points: { increment: 10 } }
+        });
+      }
+    }
 
     res.status(200).json({ status: 'success', data: { task: updated } });
   } catch (error) {

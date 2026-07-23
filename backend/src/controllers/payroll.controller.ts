@@ -1,15 +1,13 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db';
 import { AppError } from '../utils/appError';
 
 export const processPayroll = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
     const { month, year } = req.body;
 
-    // Very simplified payroll generation based on active employees
     const employees = await prisma.employee.findMany({
-      where: { companyId, status: 'ACTIVE', deletedAt: null },
+      where: { status: 'ACTIVE', deletedAt: null },
       include: {
         attendances: {
           where: {
@@ -23,18 +21,27 @@ export const processPayroll = async (req: Request, res: Response, next: NextFunc
     });
 
     const payrolls = await Promise.all(employees.map(async (emp) => {
-      // In a real scenario, basicSalary would come from SalaryComponent mappings or Employee fields.
-      // Here we assume a fixed base salary for demonstration.
-      const baseSalary = 5000; 
+      const grossSalary = emp.salary || 0;
+      const basicSalary = grossSalary * 0.5;
+      const hra = basicSalary * 0.4;
+      const conveyance = 1000;
+      const medical = 1250;
+      const special = grossSalary - (basicSalary + hra + conveyance + medical);
       
+      const totalAllowances = conveyance + medical + (special > 0 ? special : 0);
+      const deductions = 0; // PF, ESI, PT not applicable for now
+      const netSalary = grossSalary - deductions;
+
       return prisma.payroll.create({
         data: {
-          companyId,
           employeeId: emp.id,
           month,
           year,
-          basicSalary: baseSalary,
-          netSalary: baseSalary, // Assuming no deductions for MVP
+          basicSalary: basicSalary,
+          hra: hra,
+          allowances: totalAllowances,
+          deductions: deductions,
+          netSalary: netSalary,
           status: 'DRAFT'
         }
       });
@@ -48,10 +55,9 @@ export const processPayroll = async (req: Request, res: Response, next: NextFunc
 
 export const getPayrolls = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
     const { month, year } = req.query;
 
-    let filter: any = { companyId };
+    let filter: any = {};
     if (month) filter.month = Number(month);
     if (year) filter.year = Number(year);
 
@@ -69,10 +75,10 @@ export const getPayrolls = async (req: Request, res: Response, next: NextFunctio
 
 export const getMyPayrolls = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId, employeeId } = req.user as any;
+    const { employeeId } = (req as any).user || {};
     
     const payrolls = await prisma.payroll.findMany({
-      where: { companyId, employeeId, status: { in: ['PROCESSED', 'PAID'] } },
+      where: { employeeId, status: { in: ['PROCESSED', 'PAID'] } },
       orderBy: [{ year: 'desc' }, { month: 'desc' }]
     });
 

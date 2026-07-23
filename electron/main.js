@@ -11,20 +11,7 @@ function startBackend() {
     console.log('[Electron] Running in dev mode: backend should run concurrently.');
     return;
   }
-
-  const backendPath = path.join(process.resourcesPath, 'backend/server.js');
-
-  backendProcess = spawn(process.execPath, [backendPath], {
-    env: {
-      ...process.env,
-      PORT,
-      NODE_ENV: 'production',
-      DB_PATH: path.join(app.getPath('userData'), 'virtualnest.db'),
-    },
-    stdio: 'pipe'
-  });
-  backendProcess.stdout.on('data', d => console.log('[Backend]', d.toString()));
-  backendProcess.stderr.on('data', d => console.error('[Backend]', d.toString()));
+  console.log('[Electron] Production backend is hosted on Render, skipping local spawn.');
 }
 
 function createWindow() {
@@ -44,7 +31,6 @@ function createWindow() {
     : `file://${path.join(__dirname, '../frontend-legacy/dist/index.html')}`;
 
   mainWindow.loadURL(url);
-  mainWindow.webContents.openDevTools();
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`[Electron Console] ${message}`);
   });

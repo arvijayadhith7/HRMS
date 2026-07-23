@@ -23,7 +23,7 @@
           ]
         }
       ],
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -34,17 +34,8 @@
     },
     "files": [
       "electron/**/*",
-      "frontend/dist/**/*",
+      "frontend-legacy/dist/**/*",
       "assets/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "backend",
-        "to": "backend",
-        "filter": [
-          "**/*"
-        ]
-      }
     ],
     "directories": {
       "output": "dist"

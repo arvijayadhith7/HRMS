@@ -15,7 +15,7 @@ export default function MyTasks() {
     setLoading(true);
     try {
       const { data: emps } = await api.get('/employees');
-      const matched = emps.find(e => e.email === user.email);
+      const matched = emps.find(e => e.email?.toLowerCase().trim() === user?.email?.toLowerCase().trim());
       if (matched) {
         const { data: tsks } = await api.get(`/tasks/my?employeeId=${matched.id}`);
         setTasks(tsks);

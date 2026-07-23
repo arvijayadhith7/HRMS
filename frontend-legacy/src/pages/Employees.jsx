@@ -43,7 +43,8 @@ export default function Employees() {
     empId: '', firstName: '', lastName: '', email: '', temporaryPassword: '',
     phone: '', department: '', designation: '', joinDate: '', salary: '',
     status: 'active', photo: '', reportingManager: '', address: '',
-    emergencyContact: '', bankDetails: ''
+    emergencyContact: '', bankDetails: '', dateOfBirth: '', personalEmail: '',
+    altPhone: '', permanentAddress: ''
   });
   const [formError, setFormError] = useState('');
 
@@ -87,7 +88,11 @@ export default function Employees() {
         reportingManager: employee.reportingManager || '',
         address: employee.address || '', 
         emergencyContact: employee.emergencyContact || '',
-        bankDetails: employee.bankDetails || ''
+        bankDetails: employee.bankDetails || '',
+        dateOfBirth: employee.dateOfBirth ? new Date(employee.dateOfBirth).toISOString().substring(0, 10) : '',
+        personalEmail: employee.personalEmail || '',
+        altPhone: employee.altPhone || '',
+        permanentAddress: employee.permanentAddress || ''
       });
     } else {
       setSelectedEmp(null);
@@ -95,7 +100,8 @@ export default function Employees() {
         empId: '', firstName: '', lastName: '', email: '', temporaryPassword: '',
         phone: '', department: '', designation: '', joinDate: new Date().toISOString().substring(0, 10),
         salary: '', status: 'active', photo: '', reportingManager: '', address: '',
-        emergencyContact: '', bankDetails: ''
+        emergencyContact: '', bankDetails: '', dateOfBirth: '', personalEmail: '',
+        altPhone: '', permanentAddress: ''
       });
     }
     setShowModal(true);
@@ -756,6 +762,42 @@ export default function Employees() {
                     onChange={e => setFormData(p => ({ ...p, joinDate: e.target.value }))} 
                     className="w-full px-3 py-2 bg-white border border-border text-text-primary text-sm rounded-lg outline-none focus:border-primary transition-colors" 
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Date of Birth</label>
+                  <input 
+                    type="date" 
+                    value={formData.dateOfBirth} 
+                    onChange={e => setFormData(p => ({ ...p, dateOfBirth: e.target.value }))} 
+                    className="w-full px-3 py-2 bg-white border border-border text-text-primary text-sm rounded-lg outline-none focus:border-primary transition-colors" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Personal Email</label>
+                  <input 
+                    type="email" 
+                    value={formData.personalEmail} 
+                    onChange={e => setFormData(p => ({ ...p, personalEmail: e.target.value }))} 
+                    className="w-full px-3 py-2 bg-white border border-border text-text-primary text-sm rounded-lg outline-none focus:border-primary transition-colors" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Alternative Phone</label>
+                  <input 
+                    type="text" 
+                    value={formData.altPhone} 
+                    onChange={e => setFormData(p => ({ ...p, altPhone: e.target.value }))} 
+                    className="w-full px-3 py-2 bg-white border border-border text-text-primary text-sm rounded-lg outline-none focus:border-primary transition-colors" 
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">Permanent Address</label>
+                  <textarea 
+                    value={formData.permanentAddress} 
+                    onChange={e => setFormData(p => ({ ...p, permanentAddress: e.target.value }))} 
+                    rows={2}
+                    className="w-full px-3 py-2 bg-white border border-border text-text-primary text-sm rounded-lg outline-none focus:border-primary transition-colors resize-none" 
+                  ></textarea>
                 </div>
               </div>
 

@@ -12,6 +12,7 @@ export default function Leave() {
   const [selectedEmpId, setSelectedEmpId] = useState('');
   
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [leaveToApprove, setLeaveToApprove] = useState(null);
   const [formData, setFormData] = useState({
     employeeId: '',
     leaveType: 'casual',
@@ -24,12 +25,14 @@ export default function Leave() {
 
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
+  const monthlyChartRef = useRef(null);
+  const monthlyChartInstance = useRef(null);
 
   const fetchEmployees = async () => {
     try {
       const { data } = await api.get('/employees');
       if (user?.role === 'employee') {
-        const matched = data.find(e => e.email === user.email);
+        const matched = data.find(e => e.email?.toLowerCase().trim() === user?.email?.toLowerCase().trim());
         const filtered = matched ? [matched] : [];
         setEmployees(filtered);
         if (filtered.length > 0) {
@@ -54,7 +57,7 @@ export default function Leave() {
       const params = {};
       if (user?.role === 'employee') {
         const { data: emps } = await api.get('/employees');
-        const matched = emps.find(e => e.email === user.email);
+        const matched = emps.find(e => e.email?.toLowerCase().trim() === user?.email?.toLowerCase().trim());
         if (matched) {
           params.employeeId = matched.id;
         }
@@ -73,18 +76,31 @@ export default function Leave() {
     fetchLeaves();
   }, []);
 
+  const getDaysDiff = (from, to) => {
+    const diffTime = Math.abs(new Date(to) - new Date(from));
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  };
+
   useEffect(() => {
     if (chartRef.current) {
       if (chartInstance.current) chartInstance.current.destroy();
       const ctx = chartRef.current.getContext('2d');
+      
+      const monthlyData = new Array(12).fill(0);
+      leaves.filter(l => l.status === 'approved').forEach(l => {
+        const from = new Date(l.fromDate);
+        const to = new Date(l.toDate);
+        monthlyData[from.getMonth()] += getDaysDiff(from, to);
+      });
+
       chartInstance.current = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
           datasets: [
             {
-              label: 'Leave Taken',
-              data: [0, 0, 0, 0, 0, 0, 0, 0],
+              label: 'Leave Taken (Days)',
+              data: monthlyData,
               borderColor: '#111827',
               backgroundColor: 'rgba(17, 24, 39, 0.03)',
               borderWidth: 2,
@@ -100,20 +116,58 @@ export default function Leave() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
+          plugins: { legend: { display: false } },
           scales: {
-            y: { grid: { color: '#F3F4F6' }, min: 0, max: 50, ticks: { color: '#6B7280', stepSize: 10 } },
+            y: { grid: { color: '#F3F4F6' }, min: 0, suggestedMax: 10, ticks: { color: '#6B7280', stepSize: 5 } },
             x: { grid: { display: false }, ticks: { color: '#6B7280' } }
           }
         }
       });
     }
+
+    if (monthlyChartRef.current) {
+      if (monthlyChartInstance.current) monthlyChartInstance.current.destroy();
+      const ctx2 = monthlyChartRef.current.getContext('2d');
+      
+      const typeData = [0, 0, 0, 0];
+      const currMonth = new Date().getMonth();
+      leaves.filter(l => l.status === 'approved').forEach(l => {
+        const from = new Date(l.fromDate);
+        if (from.getMonth() === currMonth) {
+          const days = getDaysDiff(from, new Date(l.toDate));
+          if (l.leaveType === 'sick') typeData[0] += days;
+          else if (l.leaveType === 'casual') typeData[1] += days;
+          else if (l.leaveType === 'earned') typeData[2] += days;
+          else typeData[3] += days;
+        }
+      });
+
+      monthlyChartInstance.current = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: ['Sick', 'Casual', 'Earned', 'Unpaid'],
+          datasets: [{
+            data: typeData,
+            backgroundColor: ['#F59E0B', '#8B5CF6', '#10B981', '#6B7280'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '70%',
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 10, padding: 20, color: '#6B7280' } }
+          }
+        }
+      });
+    }
+
     return () => {
       if (chartInstance.current) chartInstance.current.destroy();
+      if (monthlyChartInstance.current) monthlyChartInstance.current.destroy();
     };
-  }, []);
+  }, [leaves]);
 
   const handleStatusChange = async (id, status) => {
     try {
@@ -142,10 +196,7 @@ export default function Leave() {
     }
   };
 
-  const getDaysDiff = (from, to) => {
-    const diffTime = Math.abs(new Date(to) - new Date(from));
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  };
+  // getDaysDiff moved up for charts
 
   const pendingCount = leaves.filter(l => l.status === 'pending').length;
   const approvedLeaves = leaves.filter(l => l.status === 'approved');
@@ -170,7 +221,7 @@ export default function Leave() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-6 min-w-0">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-surface p-6 rounded-xl border border-border shadow-sm flex items-center justify-between">
@@ -251,7 +302,16 @@ export default function Leave() {
                     leaves.map((l) => (
                       <tr key={l.id} className="hover:bg-background transition-colors">
                         <td className="px-6 py-4 font-bold text-text-secondary">{l.employee.empId}</td>
-                        <td className="px-6 py-4 font-bold text-text-primary">{l.employee.firstName} {l.employee.lastName}</td>
+                        <td 
+                          className={`px-6 py-4 font-bold text-text-primary ${user?.role !== 'employee' ? 'cursor-pointer hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4' : ''}`}
+                          onClick={() => {
+                            if (user?.role !== 'employee') {
+                              setLeaveToApprove(l);
+                            }
+                          }}
+                        >
+                          {l.employee.firstName} {l.employee.lastName}
+                        </td>
                         <td className="px-6 py-4">
                           <span className={`font-bold capitalize ${l.leaveType === 'sick' ? 'text-warning' : l.leaveType === 'casual' ? 'text-[#8B5CF6]' : 'text-success'}`}>
                             {l.leaveType} Leave
@@ -277,11 +337,11 @@ export default function Leave() {
                           <td className="px-6 py-4">
                             {l.status === 'pending' ? (
                               <div className="flex items-center gap-2">
-                                <button onClick={() => handleStatusChange(l.id, 'approved')} className="w-8 h-8 rounded-full bg-success/10 text-success flex items-center justify-center hover:bg-success hover:text-white transition-colors">
-                                  <Check className="w-4 h-4" />
+                                <button onClick={() => handleStatusChange(l.id, 'approved')} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-success/10 text-success hover:bg-success hover:text-white transition-colors">
+                                  Approve
                                 </button>
-                                <button onClick={() => handleStatusChange(l.id, 'rejected')} className="w-8 h-8 rounded-full bg-danger/10 text-danger flex items-center justify-center hover:bg-danger hover:text-white transition-colors">
-                                  <X className="w-4 h-4" />
+                                <button onClick={() => handleStatusChange(l.id, 'rejected')} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors">
+                                  Reject
                                 </button>
                               </div>
                             ) : (
@@ -299,15 +359,91 @@ export default function Leave() {
         </div>
 
         {/* Chart Side Panel */}
-        <div className="xl:col-span-1">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-surface p-6 rounded-xl border border-border shadow-sm h-full">
-            <h3 className="text-lg font-bold text-text-primary mb-6">Leave Statistics</h3>
-            <div className="h-[300px] w-full relative">
+        <div className="xl:col-span-1 space-y-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-surface p-6 rounded-xl border border-border shadow-sm">
+            <h3 className="text-lg font-bold text-text-primary mb-6">Yearly Trend</h3>
+            <div className="h-[250px] w-full relative">
               <canvas ref={chartRef}></canvas>
+            </div>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="bg-surface p-6 rounded-xl border border-border shadow-sm">
+            <h3 className="text-lg font-bold text-text-primary mb-6">This Month (By Type)</h3>
+            <div className="h-[250px] w-full relative flex flex-col items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <img src="/logo.png" alt="VN Watermark" className="w-20 h-20 object-contain opacity-100 -translate-y-6" />
+              </div>
+              <canvas ref={monthlyChartRef} className="relative z-0"></canvas>
             </div>
           </motion.div>
         </div>
       </div>
+
+      {/* Approve Leave Modal */}
+      {leaveToApprove && (
+        <div className="fixed inset-0 bg-text-primary/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="flex justify-between items-center px-6 py-5 border-b border-border bg-surface">
+              <h4 className="text-xl font-bold text-text-primary tracking-tight">Leave Request</h4>
+              <button onClick={() => setLeaveToApprove(null)} className="p-2 text-text-secondary hover:bg-background rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between border-b border-border pb-4">
+                <span className="text-sm font-bold text-text-secondary uppercase">Employee</span>
+                <span className="text-sm font-bold text-text-primary">{leaveToApprove.employee.firstName} {leaveToApprove.employee.lastName} ({leaveToApprove.employee.empId})</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-4">
+                <span className="text-sm font-bold text-text-secondary uppercase">Leave Type</span>
+                <span className="text-sm font-bold text-text-primary capitalize">{leaveToApprove.leaveType}</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-4">
+                <span className="text-sm font-bold text-text-secondary uppercase">Duration</span>
+                <span className="text-sm font-bold text-text-primary">{getDaysDiff(leaveToApprove.fromDate, leaveToApprove.toDate)} Days</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-4">
+                <span className="text-sm font-bold text-text-secondary uppercase">Dates</span>
+                <span className="text-sm font-bold text-text-primary">{new Date(leaveToApprove.fromDate).toLocaleDateString()} - {new Date(leaveToApprove.toDate).toLocaleDateString()}</span>
+              </div>
+              <div className="flex flex-col border-b border-border pb-4 gap-2">
+                <span className="text-sm font-bold text-text-secondary uppercase">Reason</span>
+                <p className="text-sm text-text-primary bg-background p-3 rounded-lg border border-border">{leaveToApprove.reason || 'No reason provided'}</p>
+              </div>
+              
+              <div className="flex justify-end space-x-4 pt-4">
+                <button
+                  onClick={() => setLeaveToApprove(null)}
+                  className="px-6 py-2.5 bg-background text-text-primary text-sm font-bold rounded-lg border border-border transition-colors"
+                >
+                  Close
+                </button>
+                {leaveToApprove.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        handleStatusChange(leaveToApprove.id, 'rejected');
+                        setLeaveToApprove(null);
+                      }}
+                      className="px-6 py-2.5 bg-danger/10 text-danger hover:bg-danger hover:text-white text-sm font-bold rounded-lg transition-colors"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleStatusChange(leaveToApprove.id, 'approved');
+                        setLeaveToApprove(null);
+                      }}
+                      className="px-6 py-2.5 bg-success hover:bg-success/90 text-white text-sm font-bold rounded-lg transition-all shadow-sm"
+                    >
+                      Approve
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Apply Leave Modal */}
       {showApplyModal && (

@@ -4,7 +4,6 @@ import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { errorHandler } from './middlewares/errorHandler';
 import authRoutes from './routes/auth.routes';
-import authRoutes from './routes/auth.routes';
 import employeeRoutes from './routes/employee.routes';
 import attendanceRoutes from './routes/attendance.routes';
 import leaveRoutes from './routes/leave.routes';
@@ -14,15 +13,21 @@ import recruitmentRoutes from './routes/recruitment.routes';
 import helpdeskRoutes from './routes/helpdesk.routes';
 import aiRoutes from './routes/ai.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import feedbackRoutes from './routes/feedback.routes';
+import notificationRoutes from './routes/notification.routes';
 
 import { createServer } from 'http';
 import { initSocket } from './socket';
+import { initCronJobs } from './utils/cronJobs';
 
 const app = express();
 const httpServer = createServer(app);
 
 // Initialize Socket.io
 initSocket(httpServer);
+
+// Initialize Cron Jobs
+initCronJobs();
 
 // Middlewares
 app.use(cors({
@@ -43,6 +48,8 @@ app.use('/api/v1/recruitment', recruitmentRoutes);
 app.use('/api/v1/helpdesk', helpdeskRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/feedback', feedbackRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 
 // Base route
 app.get('/health', (req, res) => {

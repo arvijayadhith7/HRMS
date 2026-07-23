@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppError } from '../utils/appError';
 import { env } from '../config/env';
@@ -29,18 +29,29 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
     const currentUser = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, companyId: true, role: true, employeeId: true, deletedAt: true }
+      select: { id: true, role: true, email: true }
     });
 
-    if (!currentUser || currentUser.deletedAt) {
-      return next(new AppError('The user belonging to this token does no longer exist.', 401));
+    if (!currentUser) {
+      return next(new AppError('The user belonging to this token no longer exists.', 401));
     }
 
-    req.user = {
-      id: currentUser.id,
-      companyId: currentUser.companyId,
-      role: currentUser.role,
-      employeeId: currentUser.employeeId,
+    // Attempt to find the employee profile linked to this user's email
+    let employeeId = null;
+    if (currentUser.role === 'employee' || currentUser.role === 'EMPLOYEE') {
+      const employee = await prisma.employee.findUnique({
+        where: { email: currentUser.email }
+      });
+      if (employee) {
+        employeeId = employee.id;
+      }
+    }
+
+    (req as any).user = { 
+      id: currentUser.id, 
+      email: currentUser.email, 
+      role: currentUser.role, 
+      employeeId 
     };
     
     next();

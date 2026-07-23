@@ -14,6 +14,19 @@ router.post('/', async (req, res) => {
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await prisma.document.update({
+      where: { id: Number(id) },
+      data: req.body
+    });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   try { await prisma.document.delete({ where: { id: Number(req.params.id) } }); res.status(204).send(); } 
   catch (err) { res.status(500).json({ error: err.message }); }

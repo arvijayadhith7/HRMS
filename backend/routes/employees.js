@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const authMiddleware = require('../middleware/authMiddleware');
+const restrictTo = require('../middleware/roleMiddleware');
 
 router.use(authMiddleware);
 
@@ -31,6 +32,11 @@ router.get('/', async (req, res) => {
       where,
       orderBy: { empId: 'asc' }
     });
+    if (req.user.role === 'employee') {
+      employees.forEach(e => {
+        delete e.salary;
+      });
+    }
     res.json(employees);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -49,6 +55,13 @@ router.get('/:id', async (req, res) => {
       }
     });
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
+    if (req.user.role === 'employee') {
+      const authUser = await prisma.user.findUnique({ where: { id: req.user.userId } });
+      if (!authUser || employee.email.toLowerCase().trim() !== authUser.email.toLowerCase().trim()) {
+        delete employee.salary;
+        delete employee.payrolls;
+      }
+    }
     res.json(employee);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -58,7 +71,7 @@ router.get('/:id', async (req, res) => {
 const bcrypt = require('bcryptjs');
 
 // POST /api/employees - Add employee
-router.post('/', async (req, res) => {
+router.post('/', restrictTo('admin', 'hr'), async (req, res) => {
   try {
     let { 
       firstName, lastName, email, phone, department, designation, joinDate, 
@@ -164,7 +177,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/employees/:id - Delete employee
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', restrictTo('admin', 'hr'), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const emp = await prisma.employee.findUnique({ where: { id } });

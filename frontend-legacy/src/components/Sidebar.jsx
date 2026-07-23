@@ -56,12 +56,10 @@ export default function Sidebar() {
       className="fixed left-0 top-0 bottom-0 w-[260px] bg-white border-r border-border flex flex-col z-50 overflow-hidden"
     >
       {/* Brand Header */}
-      <div className="flex items-center gap-3 px-6 mt-6 h-12">
+      <div className="flex items-center px-6 mt-6 h-16">
         <h1 className="text-xl font-bold text-primary tracking-tight flex items-center gap-2">
-          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white">
-            <span className="text-sm font-semibold">VN</span>
-          </div>
-          VirtualNest
+          <img src="/logo.png" alt="VirtualNest Logo" className="h-12 w-12 object-contain" />
+          VIRTUAL NEST
         </h1>
       </div>
 

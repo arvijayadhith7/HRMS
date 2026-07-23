@@ -15,7 +15,15 @@ export default function Attendance() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/attendance');
+      const params = {};
+      if (user?.role === 'employee') {
+        const { data: emps } = await api.get('/employees');
+        const matched = emps.find(e => e.email?.toLowerCase().trim() === user?.email?.toLowerCase().trim());
+        if (matched) {
+          params.employeeId = matched.id;
+        }
+      }
+      const { data } = await api.get('/attendance', { params });
       setLogs(data);
     } catch (err) {
       console.error(err);

@@ -84,6 +84,11 @@ export default function AnnouncementsEmployee() {
               <h3 className="text-xl font-bold text-text-primary mb-3 pl-3">{item.title}</h3>
               <div className="pl-3 text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
                 {item.content}
+                {item.photo && (
+                  <div className="mt-4 max-w-xl rounded-xl overflow-hidden border border-border shadow-sm bg-background">
+                    <img src={item.photo} alt="Attachment" className="max-h-[300px] w-auto max-w-full object-contain mx-auto" />
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}

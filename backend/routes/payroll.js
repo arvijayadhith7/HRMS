@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const authMiddleware = require('../middleware/authMiddleware');
+const restrictTo = require('../middleware/roleMiddleware');
 
 router.use(authMiddleware);
 
@@ -12,7 +13,17 @@ router.get('/', async (req, res) => {
     const where = {};
     if (month) where.month = parseInt(month);
     if (year) where.year = parseInt(year);
-    if (employeeId) where.employeeId = parseInt(employeeId);
+    
+    // Employees can only fetch their own payroll records
+    if (req.user.role === 'employee') {
+      const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+      const employees = await prisma.employee.findMany();
+      const employee = employees.find(e => e.email.toLowerCase().trim() === user.email.toLowerCase().trim());
+      if (!employee) return res.status(403).json({ error: 'Access denied: Employee record not found' });
+      where.employeeId = employee.id;
+    } else if (employeeId) {
+      where.employeeId = parseInt(employeeId);
+    }
 
     const payrolls = await prisma.payroll.findMany({
       where,
@@ -26,7 +37,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/payroll/generate - Generate payroll for all active employees for a given month/year
-router.post('/generate', async (req, res) => {
+router.post('/generate', restrictTo('admin', 'hr'), async (req, res) => {
   try {
     const { month, year } = req.body;
     if (!month || !year) return res.status(400).json({ error: 'Month and year are required' });
@@ -102,7 +113,7 @@ router.post('/generate', async (req, res) => {
 });
 
 // PUT /api/payroll/:id - Update payroll status / details
-router.put('/:id', async (req, res) => {
+router.put('/:id', restrictTo('admin', 'hr'), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { status, hra, allowances, deductions } = req.body;
@@ -143,7 +154,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/payroll/:id - Delete payroll record
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', restrictTo('admin', 'hr'), async (req, res) => {
   try {
     await prisma.payroll.delete({
       where: { id: parseInt(req.params.id) }

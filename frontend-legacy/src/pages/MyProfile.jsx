@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
-import { User, Lock, Save, Key, UserCircle, Briefcase, Mail, Calendar, Phone, Home, Building } from 'lucide-react';
+import { User, Lock, Save, Key, UserCircle, Briefcase, Mail, Calendar, Phone, Home, Building, Camera } from 'lucide-react';
 
 export default function MyProfile() {
   const { user } = useAuth();
@@ -12,7 +12,8 @@ export default function MyProfile() {
   
   // State for editable fields
   const [formData, setFormData] = useState({
-    phone: '', address: '', emergencyContact: '', bankDetails: ''
+    phone: '', address: '', emergencyContact: '', bankDetails: '',
+    personalEmail: '', altPhone: '', permanentAddress: '', dateOfBirth: '', photo: ''
   });
 
   // State for password change
@@ -25,14 +26,19 @@ export default function MyProfile() {
     setLoading(true);
     try {
       const { data: emps } = await api.get('/employees');
-      const matched = emps.find(e => e.email === user.email);
+      const matched = emps.find(e => e.email?.toLowerCase().trim() === user?.email?.toLowerCase().trim());
       if (matched) {
         setEmployee(matched);
         setFormData({
           phone: matched.phone || '',
           address: matched.address || '',
           emergencyContact: matched.emergencyContact || '',
-          bankDetails: matched.bankDetails || ''
+          bankDetails: matched.bankDetails || '',
+          personalEmail: matched.personalEmail || '',
+          altPhone: matched.altPhone || '',
+          permanentAddress: matched.permanentAddress || '',
+          dateOfBirth: matched.dateOfBirth ? new Date(matched.dateOfBirth).toISOString().substring(0, 10) : '',
+          photo: matched.photo || ''
         });
       }
     } catch (err) {
@@ -58,6 +64,15 @@ export default function MyProfile() {
       alert('Failed to update profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setFormData(prev => ({ ...prev, photo: reader.result }));
+      reader.readAsDataURL(file);
     }
   };
 
@@ -106,12 +121,33 @@ export default function MyProfile() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface rounded-xl border border-border shadow-sm overflow-hidden relative group">
               <div className="h-28 bg-primary"></div>
               <div className="px-6 pb-6 pt-0 relative">
-                <div className="w-24 h-24 rounded-full border-4 border-surface bg-background mx-auto -mt-12 mb-4 overflow-hidden shadow-lg flex items-center justify-center text-3xl font-bold text-primary">
-                  {employee.photo ? (
+                <div className="w-24 h-24 rounded-full border-4 border-surface bg-background mx-auto -mt-12 mb-4 overflow-hidden shadow-lg flex items-center justify-center text-3xl font-bold text-primary relative group cursor-pointer">
+                  {formData.photo ? (
+                    <img src={formData.photo} alt="Profile" className="w-full h-full object-cover" />
+                  ) : employee.photo ? (
                     <img src={employee.photo} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     employee.firstName[0]
                   )}
+                  <div className="absolute inset-0 bg-primary/40 hidden group-hover:flex items-center justify-center transition-colors">
+                    <Camera className="w-8 h-8 text-white opacity-90" />
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    title="Change Profile Photo"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData(prev => ({ ...prev, photo: reader.result }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
                 </div>
                 <div className="text-center mb-6">
                   <h3 className="text-xl font-bold text-text-primary">{employee.firstName} {employee.lastName}</h3>
@@ -197,6 +233,31 @@ export default function MyProfile() {
                   <div className="md:col-span-2">
                     <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Residential Address</label>
                     <textarea value={formData.address} onChange={e => setFormData(p => ({ ...p, address: e.target.value }))} rows={2} className="w-full px-4 py-3 bg-background border border-border text-text-primary text-sm rounded-xl outline-none focus:border-primary transition-colors resize-none"></textarea>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Permanent Address</label>
+                    <textarea value={formData.permanentAddress} onChange={e => setFormData(p => ({ ...p, permanentAddress: e.target.value }))} rows={2} className="w-full px-4 py-3 bg-background border border-border text-text-primary text-sm rounded-xl outline-none focus:border-primary transition-colors resize-none"></textarea>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Personal Email</label>
+                    <input type="email" value={formData.personalEmail} onChange={e => setFormData(p => ({ ...p, personalEmail: e.target.value }))} className="w-full px-4 py-3 bg-background border border-border text-text-primary text-sm rounded-xl outline-none focus:border-primary transition-colors" />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Alternative Phone</label>
+                    <input type="text" value={formData.altPhone} onChange={e => setFormData(p => ({ ...p, altPhone: e.target.value }))} className="w-full px-4 py-3 bg-background border border-border text-text-primary text-sm rounded-xl outline-none focus:border-primary transition-colors" />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Date of Birth</label>
+                    <input type="date" value={formData.dateOfBirth} onChange={e => setFormData(p => ({ ...p, dateOfBirth: e.target.value }))} className="w-full px-4 py-3 bg-background border border-border text-text-primary text-sm rounded-xl outline-none focus:border-primary transition-colors" />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Profile Photo Update</label>
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="w-full px-4 py-2.5 bg-background border border-border text-text-primary text-sm rounded-xl outline-none focus:border-primary transition-colors" />
                   </div>
 
                   <div className="md:col-span-2">

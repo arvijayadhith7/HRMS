@@ -26,6 +26,8 @@ export default function Dashboard() {
   const [checkedOutToday, setCheckedOutToday] = useState(false);
   const [checking, setChecking] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [myTasks, setMyTasks] = useState([]);
+  const [currentEmployeeId, setCurrentEmployeeId] = useState(null);
   const [message, setMessage] = useState('');
   const [lastCheckInTime, setLastCheckInTime] = useState(null);
   const [personalLeaves, setPersonalLeaves] = useState([]);
@@ -38,13 +40,13 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      const { data } = await api.get('/reports/summary');
+      const { data } = await api.get('/dashboard/summary');
       setStats(data);
       const annRes = await api.get('/announcements');
       setAnnouncements(annRes.data.slice(0, 5));
       
       if (user?.role !== 'employee') {
-        const depRes = await api.get('/reports/departments');
+        const depRes = await api.get('/dashboard/departments');
         setDepartmentCounts(depRes.data);
       }
     } catch (err) {
@@ -61,15 +63,16 @@ export default function Dashboard() {
     }
   };
 
-  const [myTasks, setMyTasks] = useState([]);
 
   const loadEmployeeData = async () => {
     try {
       const { data: emps } = await api.get('/employees');
-      const matched = emps.find(e => e.email === user.email);
+      const matched = emps.find(e => e.email.toLowerCase().trim() === user.email?.toLowerCase().trim());
       if (matched) {
+        setCurrentEmployeeId(matched.id);
         // Fetch last check in
-        const { data: logs } = await api.get(`/attendance?employeeId=${matched.id}`);
+        const { data: logsResponse } = await api.get(`/attendance/my`);
+        const logs = logsResponse.data?.records || [];
         const todayStr = new Date().toDateString();
         const todayLog = logs.find(l => new Date(l.date).toDateString() === todayStr);
         if (todayLog) {
@@ -111,19 +114,18 @@ export default function Dashboard() {
     setChecking(true);
     setMessage('');
     try {
-      const { data: emps } = await api.get('/employees');
-      const matchedEmp = emps.find(e => e.email === user.email);
-      if (!matchedEmp) {
-        setMessage('No corresponding employee record found.');
+      if (!currentEmployeeId) {
+        setMessage('Employee profile not loaded yet. Please try again.');
+        setChecking(false);
         return;
       }
-      await api.post('/attendance/check-in', { employeeId: matchedEmp.id });
+      await api.post('/attendance/check-in', { employeeId: currentEmployeeId });
       setCheckedInToday(true);
       setLastCheckInTime(new Date());
       fetchStats();
       setMessage('Checked in successfully!');
     } catch (err) {
-      setMessage(err.response?.data?.error || 'Check-in failed');
+      setMessage(err.response?.data?.message || err.response?.data?.error || 'Check-in failed');
     } finally {
       setChecking(false);
     }
@@ -133,18 +135,17 @@ export default function Dashboard() {
     setChecking(true);
     setMessage('');
     try {
-      const { data: emps } = await api.get('/employees');
-      const matchedEmp = emps.find(e => e.email === user.email);
-      if (!matchedEmp) {
-        setMessage('No corresponding employee record found.');
+      if (!currentEmployeeId) {
+        setMessage('Employee profile not loaded yet. Please try again.');
+        setChecking(false);
         return;
       }
-      await api.post('/attendance/check-out', { employeeId: matchedEmp.id });
+      await api.post('/attendance/check-out', { employeeId: currentEmployeeId });
       setCheckedOutToday(true);
       fetchStats();
       setMessage('Checked out successfully!');
     } catch (err) {
-      setMessage(err.response?.data?.error || 'Check-out failed');
+      setMessage(err.response?.data?.message || err.response?.data?.error || 'Check-out failed');
     } finally {
       setChecking(false);
     }

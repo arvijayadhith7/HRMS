@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { registerCompany, login, refresh, logout } from '../controllers/auth.controller';
+import { registerCompany, login, refresh, logout, changePassword } from '../controllers/auth.controller';
 import { validate } from '../middlewares/validate';
 import { registerCompanySchema, loginSchema } from '../validators/auth.validator';
 import rateLimit from 'express-rate-limit';
@@ -16,5 +16,6 @@ router.post('/register-company', validate(registerCompanySchema), registerCompan
 router.post('/login', authLimiter, validate(loginSchema), login);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
+router.post('/change-password', changePassword);
 
 export default router;

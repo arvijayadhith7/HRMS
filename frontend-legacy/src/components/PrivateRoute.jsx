@@ -14,5 +14,5 @@ export default function PrivateRoute({ children, roles }) {
     return <Navigate to="/" replace />;
   }
 
-  return <Layout>{children}</Layout>;
+  return children;
 }

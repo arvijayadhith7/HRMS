@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, CheckCircle, Clock, CreditCard, ChevronRight, Megaphone, Calendar, TrendingUp, X } from 'lucide-react';
+import { Users, CheckCircle, Clock, CreditCard, ChevronRight, Megaphone, Calendar, TrendingUp, X, Trophy } from 'lucide-react';
 import SkeletonLoader from '../components/SkeletonLoader';
 import EmptyState from '../components/EmptyState';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 export default function AdminDashboardView({ stats, employees, announcements, departmentCounts }) {
+  const navigate = useNavigate();
   const chartRef = useRef(null);
   const deptChartRef = useRef(null);
   const chartInstance = useRef(null);
@@ -160,7 +162,7 @@ export default function AdminDashboardView({ stats, employees, announcements, de
         {/* Attendance Analytics Chart */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="lg:col-span-2 bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col h-[420px]"
+          className="lg:col-span-2 min-w-0 bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col h-[420px]"
         >
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -178,15 +180,61 @@ export default function AdminDashboardView({ stats, employees, announcements, de
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
           className="bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col h-[420px]"
         >
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-text-primary">Department Performance</h3>
-            <p className="text-sm text-text-secondary">Headcount distribution</p>
+          <div className="mb-6 flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-bold text-text-primary">Department Performance</h3>
+              <p className="text-sm text-text-secondary">Headcount distribution</p>
+            </div>
+            <a href="/reports" className="text-primary text-sm font-medium hover:underline">View All</a>
           </div>
           <div className="relative flex-1 flex items-center justify-center">
             {departmentCounts && departmentCounts.length > 0 ? (
-              <canvas ref={deptChartRef}></canvas>
+              <>
+                <canvas ref={deptChartRef}></canvas>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-[-20px]">
+                  <span className="text-[10px] font-bold text-secondary uppercase tracking-widest opacity-50">Virtual Nest</span>
+                </div>
+              </>
             ) : (
               <EmptyState icon={Users} title="No Data" description="No department data available." />
+            )}
+          </div>
+        </motion.div>
+
+        {/* Top Performers / Leaderboard */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
+          className="bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col h-[420px]"
+        >
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-warning" />
+              Leaderboard
+            </h3>
+            <p className="text-sm text-text-secondary mt-1">Top employees by points</p>
+          </div>
+          <div className="flex-1 overflow-y-auto no-scrollbar">
+            {!stats?.topEmployees ? (
+              <div className="space-y-4"><SkeletonLoader count={3} height="60px" /></div>
+            ) : stats.topEmployees.length > 0 ? (
+              <ul className="space-y-3">
+                {stats.topEmployees.map((emp, idx) => (
+                  <li key={emp.id} className="p-3 bg-background rounded-xl border border-border flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-warning/10 text-warning flex items-center justify-center font-bold text-xs shrink-0">
+                      #{idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-text-primary truncate">{emp.firstName} {emp.lastName}</p>
+                      <p className="text-[10px] text-text-secondary truncate">{emp.designation}</p>
+                    </div>
+                    <div className="font-bold text-primary text-sm shrink-0 bg-primary/5 px-2 py-1 rounded">
+                      {emp.points} pts
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState icon={Trophy} title="No Data" description="No points awarded yet." />
             )}
           </div>
         </motion.div>
@@ -201,7 +249,7 @@ export default function AdminDashboardView({ stats, employees, announcements, de
         >
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-text-primary">Recent Hires</h3>
-            <button className="text-primary text-sm font-medium hover:underline">View All</button>
+            <button onClick={() => navigate('/employees')} className="text-primary text-sm font-medium hover:underline">View All</button>
           </div>
           <div className="flex-1 overflow-y-auto no-scrollbar">
             {!employees ? (
@@ -212,7 +260,7 @@ export default function AdminDashboardView({ stats, employees, announcements, de
                   <motion.li 
                     initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + (idx*0.1) }}
                     key={emp.id} className="p-3 bg-background rounded-xl border border-border flex items-center justify-between hover:border-primary/50 transition-colors cursor-pointer group"
-                    onClick={() => setSelectedEmployeeForTask(emp)}
+                    onClick={() => navigate('/employees')}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
@@ -240,7 +288,7 @@ export default function AdminDashboardView({ stats, employees, announcements, de
         >
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-text-primary">Announcements</h3>
-            <button className="text-primary text-sm font-medium hover:underline">View All</button>
+            <button onClick={() => navigate('/announcements/manage')} className="text-primary text-sm font-medium hover:underline">View All</button>
           </div>
           <div className="flex-1 overflow-y-auto no-scrollbar">
             {!announcements ? (

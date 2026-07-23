@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres.otadwpqtlkngcphhcprh:vijayaksith_7@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -43,6 +43,11 @@ model Employee {
   address           String?
   emergencyContact  String?
   bankDetails       String?
+  dateOfBirth       DateTime?
+  personalEmail     String?
+  altPhone          String?
+  permanentAddress  String?
+  points            Int          @default(0)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   payrolls          Payroll[]
@@ -57,6 +62,7 @@ model Employee {
   expenses          ExpenseClaim[]
   documents         Document[]
   exitRecord        ExitRecord?
+  notifications     Notification[]
 }
 
 model Payroll {
@@ -119,6 +125,7 @@ model Announcement {
   content   String
   priority  String    @default("normal")
   isPinned  Boolean   @default(false)
+  photo     String?
   createdAt DateTime  @default(now())
   createdBy Int?
   creator   Employee? @relation(fields: [createdBy], references: [id])
@@ -205,13 +212,15 @@ model ExpenseClaim {
 }
 
 model Document {
-  id          Int      @id @default(autoincrement())
-  employeeId  Int
-  title       String
-  type        String   // id_proof, contract, certificate
-  fileUrl     String
-  uploadedAt  DateTime @default(now())
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id                 Int      @id @default(autoincrement())
+  employeeId         Int
+  title              String
+  type               String   // id_proof, contract, certificate
+  fileUrl            String
+  verificationStatus String   @default("pending") // pending, verified, rejected
+  rejectionReason    String?
+  uploadedAt         DateTime @default(now())
+  employee           Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 }
 
 model ExitRecord {
@@ -224,4 +233,25 @@ model ExitRecord {
   fnfStatus       String   @default("pending")
   createdAt       DateTime @default(now())
   employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model QueryBox {
+  id          Int      @id @default(autoincrement())
+  name        String?
+  contact     String?
+  message     String
+  isAnonymous Boolean  @default(true)
+  status      String   @default("pending") // pending, reviewed, resolved
+  createdAt   DateTime @default(now())
 }

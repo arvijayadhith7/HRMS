@@ -1,17 +1,12 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db';
 import { AppError } from '../utils/appError';
 
 export const getEmployees = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
-    
     const employees = await prisma.employee.findMany({
-      where: { companyId, deletedAt: null },
       include: {
-        department: true,
-        location: true,
-        user: { select: { id: true, email: true, role: true } },
+        payrolls: true,
       },
     });
 
@@ -23,17 +18,16 @@ export const getEmployees = async (req: Request, res: Response, next: NextFuncti
 
 export const getEmployeeById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
+    const user = (req as any).user || {};
     const { id } = req.params;
 
+    // Enforce data isolation for regular employees
+    if (user.role === 'employee' && user.employeeId !== Number(id)) {
+      return next(new AppError('Forbidden: You can only view your own profile.', 403));
+    }
+
     const employee = await prisma.employee.findFirst({
-      where: { id, companyId, deletedAt: null },
-      include: {
-        department: true,
-        location: true,
-        reportingManager: { select: { id: true, firstName: true, lastName: true } },
-        subordinates: { select: { id: true, firstName: true, lastName: true } },
-      },
+      where: { id: Number(id) }
     });
 
     if (!employee) {
@@ -48,14 +42,13 @@ export const getEmployeeById = async (req: Request, res: Response, next: NextFun
 
 export const createEmployee = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
     const {
-      empId, firstName, lastName, email, phone, departmentId,
-      designation, joinDate, locationId, reportingManagerId
+      empId, firstName, lastName, email, phone, department,
+      designation, joinDate, salary
     } = req.body;
 
     const existingEmp = await prisma.employee.findFirst({
-      where: { companyId, OR: [{ email }, { empId }] }
+      where: { OR: [{ email }, { empId }] }
     });
 
     if (existingEmp) {
@@ -64,17 +57,15 @@ export const createEmployee = async (req: Request, res: Response, next: NextFunc
 
     const employee = await prisma.employee.create({
       data: {
-        companyId,
         empId,
         firstName,
         lastName,
         email,
         phone,
-        departmentId,
+        department,
         designation,
         joinDate: new Date(joinDate),
-        locationId,
-        reportingManagerId,
+        salary: Number(salary)
       }
     });
 
@@ -86,14 +77,13 @@ export const createEmployee = async (req: Request, res: Response, next: NextFunc
 
 export const updateEmployee = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
     const { id } = req.params;
 
-    const employee = await prisma.employee.findFirst({ where: { id, companyId } });
+    const employee = await prisma.employee.findFirst({ where: { id: Number(id) } });
     if (!employee) return next(new AppError('Employee not found', 404));
 
     const updated = await prisma.employee.update({
-      where: { id },
+      where: { id: Number(id) },
       data: req.body,
     });
 
@@ -105,15 +95,14 @@ export const updateEmployee = async (req: Request, res: Response, next: NextFunc
 
 export const deleteEmployee = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
     const { id } = req.params;
 
-    const employee = await prisma.employee.findFirst({ where: { id, companyId } });
+    const employee = await prisma.employee.findFirst({ where: { id: Number(id) } });
     if (!employee) return next(new AppError('Employee not found', 404));
 
     await prisma.employee.update({
-      where: { id },
-      data: { deletedAt: new Date(), status: 'TERMINATED' },
+      where: { id: Number(id) },
+      data: { status: 'inactive' },
     });
 
     res.status(204).send();

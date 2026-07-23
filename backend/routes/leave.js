@@ -112,6 +112,30 @@ router.post('/', async (req, res) => {
       include: { employee: true }
     });
 
+    // Notify all HR & Admin accounts
+    try {
+      const hrAndAdmins = await prisma.user.findMany({
+        where: { role: { in: ['admin', 'hr'] } }
+      });
+      for (const u of hrAndAdmins) {
+        const emp = await prisma.employee.findFirst({
+          where: { email: { equals: u.email, mode: 'insensitive' } }
+        });
+        if (emp) {
+          await prisma.notification.create({
+            data: {
+              userId: emp.id,
+              title: 'New Leave Request',
+              message: `${employee.firstName} ${employee.lastName} has applied for ${leaveType} leave from ${from.toLocaleDateString()} to ${to.toLocaleDateString()}.`,
+              type: 'info'
+            }
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to create leave application notifications:', notifErr);
+    }
+
     res.status(201).json(newLeave);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -138,6 +162,17 @@ router.put('/:id', async (req, res) => {
       data: { status },
       include: { employee: true }
     });
+
+    if (status === 'approved' || status === 'rejected') {
+      await prisma.notification.create({
+        data: {
+          userId: updated.employeeId,
+          title: `Leave Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+          message: `Your leave request from ${new Date(updated.fromDate).toLocaleDateString()} to ${new Date(updated.toDate).toLocaleDateString()} has been ${status}.`,
+          type: status === 'approved' ? 'success' : 'danger'
+        }
+      });
+    }
 
     res.json(updated);
   } catch (err) {

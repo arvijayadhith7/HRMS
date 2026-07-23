@@ -63,20 +63,21 @@ export default function EmployeeDashboardView({
               {checkedInToday ? (checkedOutToday ? 'Shift Ended' : 'Checked In') : 'Not Checked In'}
             </p>
           </div>
-          <div className="pr-2">
-            {!checkedInToday ? (
-              <button disabled={checking} onClick={handleSelfCheckIn} className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg transition-all shadow-sm flex items-center gap-2 text-sm w-full">
-                <LogIn className="w-5 h-5" /> <span>Check In</span>
-              </button>
-            ) : !checkedOutToday ? (
-              <button disabled={checking} onClick={handleSelfCheckOut} className="px-6 py-2.5 bg-danger hover:bg-danger/90 text-white font-bold rounded-lg transition-all shadow-sm flex items-center gap-2 text-sm w-full">
-                <LogOut className="w-5 h-5" /> <span>Check Out</span>
-              </button>
-            ) : (
-               <div className="px-6 py-2.5 bg-surface border border-border text-text-secondary font-bold rounded-lg flex items-center gap-2 text-sm w-full">
-                 <CheckCircle className="w-5 h-5" /> <span>Completed</span>
-               </div>
-            )}
+          <div className="pr-2 flex gap-2">
+            <button 
+              disabled={checking || checkedInToday} 
+              onClick={handleSelfCheckIn} 
+              className={`px-4 py-2 font-bold rounded-lg transition-all flex items-center gap-2 text-sm ${checkedInToday ? 'bg-surface text-text-secondary border border-border opacity-50 cursor-not-allowed' : 'bg-primary hover:bg-primary-dark text-white shadow-sm'}`}
+            >
+              <LogIn className="w-5 h-5" /> <span>{checking && !checkedInToday ? 'Checking In...' : 'Check In'}</span>
+            </button>
+            <button 
+              disabled={checking || !checkedInToday || checkedOutToday} 
+              onClick={handleSelfCheckOut} 
+              className={`px-4 py-2 font-bold rounded-lg transition-all flex items-center gap-2 text-sm ${(!checkedInToday || checkedOutToday) ? 'bg-surface text-text-secondary border border-border opacity-50 cursor-not-allowed' : 'bg-danger hover:bg-danger/90 text-white shadow-sm'}`}
+            >
+              <LogOut className="w-5 h-5" /> <span>{checking && checkedInToday && !checkedOutToday ? 'Checking Out...' : 'Check Out'}</span>
+            </button>
           </div>
         </div>
       </motion.div>
@@ -92,7 +93,7 @@ export default function EmployeeDashboardView({
         {[
           { label: 'Assigned Tasks', value: tasks.length, icon: FileText, color: 'text-primary', bg: 'bg-primary/5', link: '/my-tasks' },
           { label: 'Pending Tasks', value: pendingTasks.length, icon: Clock, color: 'text-warning', bg: 'bg-warning/5' },
-          { label: 'Completed Tasks', value: completedTasks.length, icon: CheckSquare, color: 'text-success', bg: 'bg-success/5' },
+          { label: 'Work Percentage', value: `${tasks.length === 0 ? 100 : Math.round((completedTasks.length / tasks.length) * 100)}%`, icon: Activity, color: 'text-success', bg: 'bg-success/5' },
           { label: 'Earned Leave', value: personalBalances?.earned?.remaining || 0, icon: Calendar, color: 'text-secondary', bg: 'bg-secondary/5', link: '/leave' }
         ].map((card, idx) => (
           <motion.div 
@@ -114,7 +115,7 @@ export default function EmployeeDashboardView({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Feed: Tasks & Announcements */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0">
           
           {/* Active Tasks Widget */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-surface rounded-xl border border-border shadow-sm flex flex-col min-h-[320px]">

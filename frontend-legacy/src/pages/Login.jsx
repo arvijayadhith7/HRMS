@@ -82,16 +82,14 @@ export default function Login() {
         className="hidden lg:flex lg:w-1/2 relative bg-primary flex-col justify-between overflow-hidden"
       >
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-50"></div>
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-50"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/80 to-primary/30"></div>
         </div>
         
         <div className="relative z-10 p-12">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary shadow-lg">
-              <Fingerprint className="w-6 h-6" />
-            </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">VirtualNest</h1>
+            <img src="/logo.png" alt="VirtualNest Logo" className="h-16 object-contain" />
+            <h1 className="text-2xl font-bold text-white tracking-tight">VIRTUAL NEST</h1>
           </div>
         </div>
 
@@ -125,10 +123,8 @@ export default function Login() {
         <div ref={cardRef} className="w-full max-w-md">
           {/* Mobile Header (Visible only on small screens) */}
           <div className="flex lg:hidden items-center gap-3 mb-10">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-md">
-              <Fingerprint className="w-6 h-6" />
-            </div>
-            <h1 className="text-2xl font-bold text-text-primary tracking-tight">VirtualNest</h1>
+            <img src="/logo.png" alt="VirtualNest Logo" className="h-16 object-contain" />
+            <h1 className="text-2xl font-bold text-primary tracking-tight">VIRTUAL NEST</h1>
           </div>
 
           <div ref={titleRef}>

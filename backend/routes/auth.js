@@ -4,6 +4,17 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const authMiddleware = require('../middleware/authMiddleware');
+const rateLimit = require('express-rate-limit');
+
+// Strict Rate Limiter for Login (Brute-force mitigation)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 login requests per windowMs
+  message: { error: 'Too many login attempts from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 
 const JWT_SECRET = process.env.JWT_SECRET || 'virtualnest-secret-change-in-prod';
 const SALT_ROUNDS = 12;
@@ -22,9 +33,46 @@ async function ensureDefaultAccountsExist() {
         role: 'admin'
       }
     });
-    console.log('[Auth] Admin account verified/updated: admin@virtualnest.com / admin@vn');
+
+    // Ensure Admin employee record exists
+    const adminEmp = await prisma.employee.findUnique({ where: { email: 'admin@virtualnest.com' } });
+    if (!adminEmp) {
+      await prisma.employee.create({
+        data: {
+          empId: 'EMP-ADMIN',
+          firstName: 'System',
+          lastName: 'Admin',
+          email: 'admin@virtualnest.com',
+          department: 'Administration',
+          designation: 'Administrator',
+          joinDate: new Date(),
+          salary: 0,
+          status: 'active'
+        }
+      });
+    }
+
+    // Ensure HR employee record exists
+    const hrEmp = await prisma.employee.findUnique({ where: { email: 'HR@vn.com' } });
+    if (!hrEmp) {
+      await prisma.employee.create({
+        data: {
+          empId: 'EMP-HR',
+          firstName: 'HR',
+          lastName: 'Manager',
+          email: 'HR@vn.com',
+          department: 'Human Resources',
+          designation: 'HR Manager',
+          joinDate: new Date(),
+          salary: 0,
+          status: 'active'
+        }
+      });
+    }
+
+    console.log('[Auth] Admin/HR accounts and employee records verified.');
   } catch (err) {
-    console.error('[Auth] Failed to seed default accounts: ', err);
+    console.error('[Auth] Failed to seed default accounts/employees: ', err);
   }
 }
 
@@ -48,7 +96,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     await ensureDefaultAccountsExist(); // Ensure default accounts exist
     const { email, password } = req.body;
@@ -83,6 +131,31 @@ router.post('/change-password', authMiddleware, async (req, res) => {
       where: { id: req.user.userId },
       data: { passwordHash: newHash }
     });
+
+    // Alert all HR & Admin employee accounts about password change
+    try {
+      const hrAdmins = await prisma.user.findMany({
+        where: { role: { in: ['admin', 'hr'] } }
+      });
+      for (const u of hrAdmins) {
+        const emp = await prisma.employee.findFirst({
+          where: { email: { equals: u.email, mode: 'insensitive' } }
+        });
+        if (emp) {
+          await prisma.notification.create({
+            data: {
+              userId: emp.id,
+              title: 'Security Alert: Password Changed',
+              message: `Employee "${user.username}" (${user.email}) has successfully changed their password.`,
+              type: 'warning'
+            }
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send password change notifications:', notifErr);
+    }
+
     res.json({ success: true, message: 'Password updated successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });

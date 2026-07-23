@@ -1,22 +1,18 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db';
 import { AppError } from '../utils/appError';
 
 export const createTicket = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId, employeeId } = req.user as any;
-    const { subject, description, priority } = req.body;
+    const { name, contact, message, isAnonymous } = req.body;
 
-    if (!employeeId) return next(new AppError('No employee profile linked', 400));
-
-    const ticket = await prisma.ticket.create({
+    const ticket = await prisma.queryBox.create({
       data: {
-        companyId,
-        subject,
-        description,
-        priority: priority || 'MEDIUM',
-        status: 'OPEN',
-        requesterId: employeeId
+        name,
+        contact,
+        message,
+        isAnonymous: isAnonymous || true,
+        status: 'pending'
       }
     });
 
@@ -28,13 +24,7 @@ export const createTicket = async (req: Request, res: Response, next: NextFuncti
 
 export const getTickets = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
-    
-    const tickets = await prisma.ticket.findMany({
-      where: { companyId, deletedAt: null },
-      include: {
-        requester: { select: { firstName: true, lastName: true } }
-      },
+    const tickets = await prisma.queryBox.findMany({
       orderBy: { createdAt: 'desc' }
     });
 
@@ -46,16 +36,15 @@ export const getTickets = async (req: Request, res: Response, next: NextFunction
 
 export const updateTicketStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId } = req.user as any;
     const { id } = req.params;
-    const { status, assignedToId } = req.body;
+    const { status } = req.body;
 
-    const ticket = await prisma.ticket.findFirst({ where: { id, companyId } });
+    const ticket = await prisma.queryBox.findFirst({ where: { id: Number(id) } });
     if (!ticket) return next(new AppError('Ticket not found', 404));
 
-    const updated = await prisma.ticket.update({
-      where: { id },
-      data: { status, assignedToId }
+    const updated = await prisma.queryBox.update({
+      where: { id: Number(id) },
+      data: { status }
     });
 
     res.status(200).json({ status: 'success', data: { ticket: updated } });

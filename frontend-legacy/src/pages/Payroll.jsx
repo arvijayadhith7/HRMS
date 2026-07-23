@@ -73,125 +73,483 @@ export default function Payroll() {
     return dates[m - 1] || 'Month';
   };
 
-  const exportPayslipPDF = (p) => {
+  const exportPayslipPDF = async (p) => {
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     
-    // Top border line
-    doc.setLineWidth(0.3);
-    doc.line(15, 20, 195, 20);
+    // --- Colors & Branding ---
+    const primaryColor = [92, 45, 145]; // Purple (#5C2D91)
+    const secondaryColor = [100, 100, 100]; // Slate gray
+    const textColor = [33, 37, 41]; // Dark gray/black
+    const lightBg = [248, 249, 250]; // Light gray background
+    const borderGray = [222, 226, 230]; // Soft border color
+    const successColor = [40, 167, 69]; // Safe Green
 
-    // Header Title
-    doc.setTextColor(92, 45, 145); // Purple
+    // --- 1. Header (Logo & Company Title) ---
+    try {
+      const response = await fetch('/logo.png');
+      const blob = await response.blob();
+      const reader = new FileReader();
+      reader.readAsDataURL(blob); 
+      await new Promise(resolve => {
+        reader.onloadend = () => {
+          const base64data = reader.result;
+          doc.addImage(base64data, 'PNG', 15, 12, 24, 24); 
+          resolve();
+        }
+      });
+    } catch (e) {
+      console.warn("Could not load logo", e);
+    }
+
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text('EMPLOYEE PAYSLIP', 15, 32);
-
-    // Logo (Varsa Academy approximation)
     doc.setFontSize(18);
-    doc.setTextColor(76, 175, 80); // Green
-    doc.text('Varsa', 135, 32);
-    doc.setTextColor(0, 0, 0);
-    doc.text('Academy', 156, 32);
+    doc.setTextColor(...primaryColor);
+    doc.text('VIRTUAL NEST', 44, 21);
     
-    doc.setFontSize(7);
-    doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'normal');
-    // Using letter-spacing by adding spaces
-    doc.text('L E A R N  I T . E A R N  I T', 142, 38);
+    doc.setFontSize(8);
+    doc.setTextColor(...secondaryColor);
+    doc.text('C R E A T E   -   C O N N E C T   -   G R O W', 44, 26);
+    doc.text('Email: contact@virtualnest.com | Web: www.virtualnest.com', 44, 31);
 
-    // Employee Details Section
-    let startY = 45;
-    doc.setLineWidth(0.1);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(...primaryColor);
+    doc.text('PAYSLIP', 195, 21, { align: 'right' });
     
-    const drawDetailsRow = (label, value, y) => {
-      doc.rect(15, y, 180, 8); // full width row
-      doc.line(75, y, 75, y + 8); // vertical divider
-      doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...textColor);
+    const monthStr = `${getMonthName(p.month)} ${p.year}`;
+    doc.text(`Pay Period: ${monthStr}`, 195, 27, { align: 'right' });
+    doc.text(`Status: ${p.status.toUpperCase()}`, 195, 32, { align: 'right' });
+
+    // Header divider line
+    doc.setDrawColor(...primaryColor);
+    doc.setLineWidth(0.5);
+    doc.line(15, 39, 195, 39);
+
+    // --- 2. Employee Details Block ---
+    let y = 46;
+    doc.setFillColor(...lightBg);
+    doc.rect(15, y, 180, 28, 'F');
+    doc.setDrawColor(...borderGray);
+    doc.setLineWidth(0.2);
+    doc.rect(15, y, 180, 28, 'S');
+
+    // Grid divider
+    doc.line(105, y, 105, y + 28);
+
+    const drawDetail = (label, val, x, currY) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...secondaryColor);
+      doc.text(label, x, currY);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(label, 17, y + 5.5);
-      doc.text(value, 77, y + 5.5);
+      doc.setTextColor(...textColor);
+      doc.text(String(val), x + 32, currY);
     };
 
-    drawDetailsRow('Employee Name', `${p.employee.firstName} ${p.employee.lastName}`.toUpperCase(), startY);
-    drawDetailsRow('Employee ID', p.employee.empId, startY + 8);
-    drawDetailsRow('Designation', p.employee.designation, startY + 16);
-    drawDetailsRow('Department', p.employee.department || '', startY + 24);
+    const joinDateStr = p.employee.joinDate ? new Date(p.employee.joinDate).toLocaleDateString('en-GB').replace(/\//g, '-') : 'N/A';
+
+    // Left Column
+    drawDetail('Employee Name:', `${p.employee.firstName} ${p.employee.lastName}`, 18, y + 6);
+    drawDetail('Employee ID:', p.employee.empId, 18, y + 12);
+    drawDetail('Designation:', p.employee.designation || 'N/A', 18, y + 18);
+    drawDetail('Department:', p.employee.department || 'N/A', 18, y + 24);
+
+    // Right Column
+    drawDetail('Date of Joining:', joinDateStr, 108, y + 6);
+    drawDetail('Bank A/c No.:', p.employee.bankDetails || 'N/A', 108, y + 12);
+    drawDetail('PAN Number:', p.employee.pan || 'N/A', 108, y + 18);
+    drawDetail('PF Universal No:', 'N/A', 108, y + 24);
+
+    // --- 3. Salary Breakdown Table ---
+    y += 36;
     
-    const monthStr = `${getMonthName(p.month).substring(0, 3)}-${p.year.toString().substring(2)}`;
-    drawDetailsRow('Month', monthStr, startY + 32);
+    // Table Header Band
+    doc.setFillColor(...primaryColor);
+    doc.rect(15, y, 180, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text('EARNINGS', 18, y + 5.5);
+    doc.text('AMOUNT', 102, y + 5.5, { align: 'right' });
+    doc.text('DEDUCTIONS', 108, y + 5.5);
+    doc.text('AMOUNT', 192, y + 5.5, { align: 'right' });
 
-    // Gap
-    startY += 48;
+    // Table Content Rows
+    const conveyance = 1000;
+    const medical = 1250;
+    const special = p.allowances - conveyance - medical > 0 ? p.allowances - conveyance - medical : 0;
+    const gross = p.basicSalary + p.hra + p.allowances;
 
-    // Earnings/Deductions Table
-    const drawSalaryRow = (col1, col2, col3, col4, y, isHeader = false, isBold = false) => {
-      doc.rect(15, y, 180, 8);
-      // Vertical lines
-      doc.line(75, y, 75, y + 8);
-      doc.line(115, y, 115, y + 8);
-      doc.line(160, y, 160, y + 8);
+    const earnings = [
+      { name: 'Basic Pay (50% of Gross)', amt: p.basicSalary },
+      { name: 'House Rent Allowance (HRA)', amt: p.hra },
+      { name: 'Conveyance Allowance', amt: conveyance },
+      { name: 'Medical Allowance', amt: medical },
+      { name: 'Special Allowance (Balancing)', amt: special }
+    ];
 
-      if (isHeader) {
-        doc.setTextColor(92, 45, 145);
-        doc.setFont('helvetica', 'bold');
-      } else if (isBold) {
-        doc.setTextColor(0, 0, 0);
-        doc.setFont('helvetica', 'bold');
-      } else {
-        doc.setTextColor(0, 0, 0);
-        doc.setFont('helvetica', 'normal');
+    const deductions = [
+      { name: 'Provident Fund (PF)', amt: 0 },
+      { name: 'Employee State Insurance (ESI)', amt: 0 },
+      { name: 'Professional Tax (PT)', amt: 0 },
+      { name: 'Other Deductions', amt: p.deductions },
+      { name: '', amt: null } // Empty spacing
+    ];
+
+    let rowY = y + 8;
+    doc.setTextColor(...textColor);
+    doc.setFont('helvetica', 'normal');
+
+    for (let i = 0; i < 5; i++) {
+      // Draw background stripe on alternate rows
+      if (i % 2 === 0) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(15, rowY, 180, 7, 'F');
       }
 
-      doc.setFontSize(10);
-      
-      // Col 1
-      doc.text(col1, 17, y + 5.5);
-      
-      // Col 2
-      if (col2) {
-         if (isHeader) {
-           doc.text(col2, 95, y + 5.5, { align: 'center' });
-         } else {
-           doc.setFont('helvetica', 'normal');
-           doc.text('₹', 77, y + 5.5);
-           if (isBold) doc.setFont('helvetica', 'bold');
-           doc.text(col2, 113, y + 5.5, { align: 'right' });
-         }
+      // Border guidelines
+      doc.setDrawColor(...borderGray);
+      doc.line(15, rowY + 7, 195, rowY + 7);
+      doc.line(105, rowY, 105, rowY + 7); // Center divider
+
+      // Earnings
+      doc.setFont('helvetica', 'normal');
+      doc.text(earnings[i].name, 18, rowY + 5);
+      doc.text(Math.round(earnings[i].amt).toLocaleString('en-IN'), 102, rowY + 5, { align: 'right' });
+
+      // Deductions
+      if (deductions[i].name) {
+        doc.text(deductions[i].name, 108, rowY + 5);
+        doc.text(Math.round(deductions[i].amt).toLocaleString('en-IN'), 192, rowY + 5, { align: 'right' });
       }
 
-      // Col 3
-      doc.text(col3, 117, y + 5.5);
+      rowY += 7;
+    }
 
-      // Col 4
-      if (col4) {
-         if (isHeader) {
-           doc.text(col4, 177, y + 5.5, { align: 'center' });
-         } else {
-           doc.setFont('helvetica', 'normal');
-           doc.text('₹', 162, y + 5.5);
-           if (isBold) doc.setFont('helvetica', 'bold');
-           doc.text(col4, 193, y + 5.5, { align: 'right' });
-         }
-      }
+    // --- 4. Totals Row ---
+    doc.setFillColor(...lightBg);
+    doc.rect(15, rowY, 180, 8, 'F');
+    doc.setDrawColor(...borderGray);
+    doc.line(15, rowY + 8, 195, rowY + 8);
+    doc.line(105, rowY, 105, rowY + 8);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Gross Earnings (A)', 18, rowY + 5.5);
+    doc.text(Math.round(gross).toLocaleString('en-IN'), 102, rowY + 5.5, { align: 'right' });
+
+    doc.text('Total Deductions (B)', 108, rowY + 5.5);
+    doc.text(Math.round(p.deductions).toLocaleString('en-IN'), 192, rowY + 5.5, { align: 'right' });
+
+    // Outer border for the table
+    doc.setDrawColor(...borderGray);
+    doc.rect(15, y, 180, (rowY - y) + 8, 'S');
+
+    // --- 5. Net Pay Section ---
+    y = rowY + 16;
+    doc.setFillColor(243, 240, 248); // Very light violet branding color
+    doc.rect(15, y, 180, 14, 'F');
+    doc.setDrawColor(...primaryColor);
+    doc.setLineWidth(0.3);
+    doc.rect(15, y, 180, 14, 'S');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...primaryColor);
+    doc.text('NET TAKE HOME (A - B)', 20, y + 8.5);
+    
+    doc.setFontSize(14);
+    doc.text(`INR ${Math.round(p.netSalary).toLocaleString('en-IN')}/-`, 190, y + 9.5, { align: 'right' });
+
+    // Net pay in words (robust Indian numbering system converter)
+    const numberToWords = (num) => {
+      const a = [
+        '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+        'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+      ];
+      const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+      const convert = (n) => {
+        if (n < 20) return a[n];
+        if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+        if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convert(n % 100) : '');
+        if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '');
+        if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 !== 0 ? ' ' + convert(n % 100000) : '');
+        return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 !== 0 ? ' ' + convert(n % 10000000) : '');
+      };
+
+      const val = Math.round(num);
+      if (val === 0) return 'Rupees Zero Only';
+      return 'Rupees ' + convert(val) + ' Only';
     };
-
-    const formatNum = (num) => num === 0 ? '-' : num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    drawSalaryRow('EARNINGS', 'Amount', 'DEDUCTIONS', 'Amount', startY, true);
     
-    drawSalaryRow('Basic Salary', formatNum(p.basicSalary), '', '', startY + 8);
-    drawSalaryRow('HRA', formatNum(p.hra), 'Other Deduction', formatNum(p.deductions), startY + 16);
-    drawSalaryRow('Dearness Allowance (DA)', formatNum(0), '', '', startY + 24);
-    drawSalaryRow('Other Allowance', formatNum(p.allowances), 'Total Deductions (B)', formatNum(p.deductions), startY + 32);
-    
-    const grossSalary = p.basicSalary + p.hra + p.allowances;
-    drawSalaryRow('Gross Salary (A)', formatNum(grossSalary), '', '-', startY + 40, false, true);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...secondaryColor);
+    doc.text(numberToWords(p.netSalary), 20, y + 20);
 
-    // Gap of 8 before Net Salary (No borders drawn for gap row)
-    drawSalaryRow('Net Salary', formatNum(p.netSalary), 'Deduction', '-', startY + 56, false, true);
+    // --- 6. CTC Summary ---
+    y += 28;
+    doc.setFillColor(...lightBg);
+    doc.rect(15, y, 180, 14, 'F');
+    doc.setDrawColor(...borderGray);
+    doc.setLineWidth(0.2);
+    doc.rect(15, y, 180, 14, 'S');
+    doc.line(105, y, 105, y + 14);
 
+    drawDetail('Monthly CTC:', `INR ${Math.round(gross).toLocaleString('en-IN')}`, 18, y + 9);
+    drawDetail('Annualized CTC:', `INR ${Math.round(gross * 12).toLocaleString('en-IN')}`, 108, y + 9);
+
+    // --- 7. Signatures and Disclaimers ---
+    y += 32;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...secondaryColor);
+    doc.text('Note: This is a system-generated payslip and does not require a physical signature.', 15, y);
+    doc.text('Employer contributions to PF and ESI are not currently applicable.', 15, y + 4.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...textColor);
+    doc.text('For Virtual Nest Pvt Ltd', 195, y, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('Authorized Signatory', 195, y + 15, { align: 'right' });
+
+    // Save File
     doc.save(`Payslip_${p.employee.empId}_${getMonthName(p.month)}_${p.year}.pdf`);
+  };
+
+  const exportCompanyPayrollPDF = async () => {
+    if (payrolls.length === 0) return;
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    
+    let logoBase64 = null;
+    try {
+      const response = await fetch('/logo.png');
+      const blob = await response.blob();
+      const reader = new FileReader();
+      reader.readAsDataURL(blob); 
+      logoBase64 = await new Promise(resolve => {
+        reader.onloadend = () => resolve(reader.result);
+      });
+    } catch (e) {
+      console.warn("Could not load logo", e);
+    }
+
+    const primaryColor = [92, 45, 145]; 
+    const secondaryColor = [100, 100, 100]; 
+    const textColor = [33, 37, 41]; 
+    const lightBg = [248, 249, 250]; 
+    const borderGray = [222, 226, 230]; 
+
+    const numberToWords = (num) => {
+      const a = [
+        '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+        'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+      ];
+      const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+      const convert = (n) => {
+        if (n < 20) return a[n];
+        if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+        if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convert(n % 100) : '');
+        if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '');
+        if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 !== 0 ? ' ' + convert(n % 100000) : '');
+        return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 !== 0 ? ' ' + convert(n % 10000000) : '');
+      };
+
+      const val = Math.round(num);
+      if (val === 0) return 'Rupees Zero Only';
+      return 'Rupees ' + convert(val) + ' Only';
+    };
+
+    payrolls.forEach((p, index) => {
+      if (index > 0) {
+        doc.addPage();
+      }
+
+      if (logoBase64) {
+        doc.addImage(logoBase64, 'PNG', 15, 12, 24, 24); 
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(...primaryColor);
+      doc.text('VIRTUAL NEST', 44, 21);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...secondaryColor);
+      doc.text('C R E A T E   -   C O N N E C T   -   G R O W', 44, 26);
+      doc.text('Email: contact@virtualnest.com | Web: www.virtualnest.com', 44, 31);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(...primaryColor);
+      doc.text('PAYSLIP', 195, 21, { align: 'right' });
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...textColor);
+      const monthStr = `${getMonthName(p.month)} ${p.year}`;
+      doc.text(`Pay Period: ${monthStr}`, 195, 27, { align: 'right' });
+      doc.text(`Status: ${p.status.toUpperCase()}`, 195, 32, { align: 'right' });
+
+      doc.setDrawColor(...primaryColor);
+      doc.setLineWidth(0.5);
+      doc.line(15, 39, 195, 39);
+
+      let y = 46;
+      doc.setFillColor(...lightBg);
+      doc.rect(15, y, 180, 28, 'F');
+      doc.setDrawColor(...borderGray);
+      doc.setLineWidth(0.2);
+      doc.rect(15, y, 180, 28, 'S');
+
+      doc.line(105, y, 105, y + 28);
+
+      const drawDetail = (label, val, x, currY) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(...secondaryColor);
+        doc.text(label, x, currY);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...textColor);
+        doc.text(String(val), x + 32, currY);
+      };
+
+      const joinDateStr = p.employee.joinDate ? new Date(p.employee.joinDate).toLocaleDateString('en-GB').replace(/\//g, '-') : 'N/A';
+
+      drawDetail('Employee Name:', `${p.employee.firstName} ${p.employee.lastName}`, 18, y + 6);
+      drawDetail('Employee ID:', p.employee.empId, 18, y + 12);
+      drawDetail('Designation:', p.employee.designation || 'N/A', 18, y + 18);
+      drawDetail('Department:', p.employee.department || 'N/A', 18, y + 24);
+
+      drawDetail('Date of Joining:', joinDateStr, 108, y + 6);
+      drawDetail('Bank A/c No.:', p.employee.bankDetails || 'N/A', 108, y + 12);
+      drawDetail('PAN Number:', p.employee.pan || 'N/A', 108, y + 18);
+      drawDetail('PF Universal No:', 'N/A', 108, y + 24);
+
+      y += 36;
+      doc.setFillColor(...primaryColor);
+      doc.rect(15, y, 180, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.text('EARNINGS', 18, y + 5.5);
+      doc.text('AMOUNT', 102, y + 5.5, { align: 'right' });
+      doc.text('DEDUCTIONS', 108, y + 5.5);
+      doc.text('AMOUNT', 192, y + 5.5, { align: 'right' });
+
+      const conveyance = 1000;
+      const medical = 1250;
+      const special = p.allowances - conveyance - medical > 0 ? p.allowances - conveyance - medical : 0;
+      const gross = p.basicSalary + p.hra + p.allowances;
+
+      const earnings = [
+        { name: 'Basic Pay (50% of Gross)', amt: p.basicSalary },
+        { name: 'House Rent Allowance (HRA)', amt: p.hra },
+        { name: 'Conveyance Allowance', amt: conveyance },
+        { name: 'Medical Allowance', amt: medical },
+        { name: 'Special Allowance (Balancing)', amt: special }
+      ];
+
+      const deductions = [
+        { name: 'Provident Fund (PF)', amt: 0 },
+        { name: 'Employee State Insurance (ESI)', amt: 0 },
+        { name: 'Professional Tax (PT)', amt: 0 },
+        { name: 'Other Deductions', amt: p.deductions },
+        { name: '', amt: null }
+      ];
+
+      let rowY = y + 8;
+      doc.setTextColor(...textColor);
+      doc.setFont('helvetica', 'normal');
+
+      for (let i = 0; i < 5; i++) {
+        if (i % 2 === 0) {
+          doc.setFillColor(250, 250, 250);
+          doc.rect(15, rowY, 180, 7, 'F');
+        }
+        doc.setDrawColor(...borderGray);
+        doc.line(15, rowY + 7, 195, rowY + 7);
+        doc.line(105, rowY, 105, rowY + 7);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(earnings[i].name, 18, rowY + 5);
+        doc.text(Math.round(earnings[i].amt).toLocaleString('en-IN'), 102, rowY + 5, { align: 'right' });
+
+        if (deductions[i].name) {
+          doc.text(deductions[i].name, 108, rowY + 5);
+          doc.text(Math.round(deductions[i].amt).toLocaleString('en-IN'), 192, rowY + 5, { align: 'right' });
+        }
+        rowY += 7;
+      }
+
+      doc.setFillColor(...lightBg);
+      doc.rect(15, rowY, 180, 8, 'F');
+      doc.setDrawColor(...borderGray);
+      doc.line(15, rowY + 8, 195, rowY + 8);
+      doc.line(105, rowY, 105, rowY + 8);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Gross Earnings (A)', 18, rowY + 5.5);
+      doc.text(Math.round(gross).toLocaleString('en-IN'), 102, rowY + 5.5, { align: 'right' });
+
+      doc.text('Total Deductions (B)', 108, rowY + 5.5);
+      doc.text(Math.round(p.deductions).toLocaleString('en-IN'), 192, rowY + 5.5, { align: 'right' });
+
+      doc.setDrawColor(...borderGray);
+      doc.rect(15, y, 180, (rowY - y) + 8, 'S');
+
+      y = rowY + 16;
+      doc.setFillColor(243, 240, 248);
+      doc.rect(15, y, 180, 14, 'F');
+      doc.setDrawColor(...primaryColor);
+      doc.setLineWidth(0.3);
+      doc.rect(15, y, 180, 14, 'S');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...primaryColor);
+      doc.text('NET TAKE HOME (A - B)', 20, y + 8.5);
+      
+      doc.setFontSize(14);
+      doc.text(`INR ${Math.round(p.netSalary).toLocaleString('en-IN')}/-`, 190, y + 9.5, { align: 'right' });
+
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...secondaryColor);
+      doc.text(numberToWords(p.netSalary), 20, y + 20);
+
+      y += 28;
+      doc.setFillColor(...lightBg);
+      doc.rect(15, y, 180, 14, 'F');
+      doc.setDrawColor(...borderGray);
+      doc.setLineWidth(0.2);
+      doc.rect(15, y, 180, 14, 'S');
+      doc.line(105, y, 105, y + 14);
+
+      drawDetail('Monthly CTC:', `INR ${Math.round(gross).toLocaleString('en-IN')}`, 18, y + 9);
+      drawDetail('Annualized CTC:', `INR ${Math.round(gross * 12).toLocaleString('en-IN')}`, 108, y + 9);
+
+      y += 32;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...secondaryColor);
+      doc.text('Note: This is a system-generated payslip and does not require a physical signature.', 15, y);
+      doc.text('Employer contributions to PF and ESI are not currently applicable.', 15, y + 4.5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...textColor);
+      doc.text('For Virtual Nest Pvt Ltd', 195, y, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.text('Authorized Signatory', 195, y + 15, { align: 'right' });
+    });
+
+    doc.save(`Company_Payroll_Report_${getMonthName(month)}_${year}.pdf`);
   };
 
   return (
@@ -201,14 +559,6 @@ export default function Payroll() {
         <div>
           <h2 className="text-2xl font-bold text-text-primary tracking-tight">Payroll Management</h2>
           <p className="text-sm text-text-secondary mt-1">Generate monthly payslips and dispatch staff salary approvals.</p>
-        </div>
-        <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-surface border border-border rounded-lg text-sm font-bold text-text-primary hover:bg-background transition-colors flex items-center gap-2 shadow-sm">
-              <Settings className="w-4 h-4" /> Settings
-            </button>
-            <button className="px-5 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-sm">
-              <CreditCard className="w-4 h-4" /> Bank Transfer
-            </button>
         </div>
       </div>
 
@@ -243,15 +593,25 @@ export default function Payroll() {
             </div>
           </div>
 
-          <div className="w-full lg:w-auto shrink-0 pt-2 lg:pt-0">
+          <div className="w-full lg:w-auto shrink-0 pt-2 lg:pt-0 flex gap-3">
             <button
               disabled={loading}
               onClick={handleGeneratePayroll}
-              className="w-full flex items-center justify-center space-x-2 bg-primary-dark hover:bg-primary-dark/90 text-white text-sm font-bold px-6 py-3 rounded-lg transition-all shadow-sm"
+              className="flex items-center justify-center space-x-2 bg-primary-dark hover:bg-primary-dark/90 text-white text-sm font-bold px-6 py-3 rounded-lg transition-all shadow-sm"
             >
               <Calculator className="w-4 h-4" />
               <span>Generate Monthly Payslips</span>
             </button>
+
+            {payrolls.length > 0 && (
+              <button
+                onClick={exportCompanyPayrollPDF}
+                className="flex items-center justify-center space-x-2 bg-success text-white text-sm font-bold px-6 py-3 rounded-lg hover:bg-success/90 transition-all shadow-sm"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Company Payroll</span>
+              </button>
+            )}
           </div>
         </div>
 

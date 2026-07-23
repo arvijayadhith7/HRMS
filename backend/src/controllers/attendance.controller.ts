@@ -1,15 +1,15 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db';
 import { AppError } from '../utils/appError';
 
 export const checkIn = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId, employeeId } = req.user as any;
+    const { employeeId } = (req as any).user || {};
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
     const existingRecord = await prisma.attendance.findFirst({
-      where: { companyId, employeeId, date: today }
+      where: { employeeId: Number(employeeId), date: today }
     });
 
     if (existingRecord) {
@@ -18,8 +18,7 @@ export const checkIn = async (req: Request, res: Response, next: NextFunction) =
 
     const attendance = await prisma.attendance.create({
       data: {
-        companyId,
-        employeeId,
+        employeeId: Number(employeeId),
         date: today,
         checkIn: new Date(),
         status: 'PRESENT'
@@ -34,12 +33,12 @@ export const checkIn = async (req: Request, res: Response, next: NextFunction) =
 
 export const checkOut = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId, employeeId } = req.user as any;
+    const { employeeId } = (req as any).user || {};
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
     const attendance = await prisma.attendance.findFirst({
-      where: { companyId, employeeId, date: today }
+      where: { employeeId: Number(employeeId), date: today }
     });
 
     if (!attendance || !attendance.checkIn) {
@@ -56,8 +55,7 @@ export const checkOut = async (req: Request, res: Response, next: NextFunction) 
     const updated = await prisma.attendance.update({
       where: { id: attendance.id },
       data: {
-        checkOut: checkOutTime,
-        totalHours: diffHours,
+        checkOut: checkOutTime
       }
     });
 
@@ -69,7 +67,7 @@ export const checkOut = async (req: Request, res: Response, next: NextFunction) 
 
 export const getMyAttendance = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { companyId, employeeId } = req.user as any;
+    const { employeeId } = (req as any).user || {};
     const { month, year } = req.query;
 
     let dateFilter = {};
@@ -80,7 +78,7 @@ export const getMyAttendance = async (req: Request, res: Response, next: NextFun
     }
 
     const records = await prisma.attendance.findMany({
-      where: { companyId, employeeId, ...dateFilter },
+      where: { employeeId: Number(employeeId), ...dateFilter },
       orderBy: { date: 'desc' }
     });
 

@@ -21,8 +21,8 @@ export default {
         "border-dark": "#9CA3AF",
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        display: ["Inter", "sans-serif"],
+        sans: ["Outfit", "sans-serif"],
+        display: ["Outfit", "sans-serif"],
       },
       boxShadow: {
         'soft': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',

@@ -18,7 +18,7 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-background text-text-primary font-sans flex overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col pl-[260px] relative h-screen w-full">
+      <div className="flex-1 flex flex-col pl-[260px] relative h-screen min-w-0">
         <Topbar onOpenCommandPalette={handleOpenCommand} onToggleAIAssistant={handleToggleAI} />
         
         {/* Main Content Area */}
