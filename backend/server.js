@@ -2,14 +2,17 @@ require('dotenv').config();
 
 // Programmatic fallback for DATABASE_URL if Render env is not set
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "postgresql://postgres:vijayaksith_7@db.otadwpqtlkngcphhcprh.supabase.co:6543/postgres?pgbouncer=true";
+  process.env.DATABASE_URL = "postgresql://postgres.kysojwkojxwtdzeaejpl:Skandha2026_@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
 }
 
-// Auto-upgrade to connection pooler (port 6543) if direct IPv6 host is used on port 5432, since Render does not support IPv6 outbound.
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('db.otadwpqtlkngcphhcprh.supabase.co:5432')) {
-  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(':5432', ':6543');
-  if (!process.env.DATABASE_URL.includes('pgbouncer')) {
-    process.env.DATABASE_URL += (process.env.DATABASE_URL.includes('?') ? '&' : '?') + 'pgbouncer=true';
+// Auto-upgrade direct IPv6 host to IPv4 pooler if used on port 5432, since Render does not support IPv6 outbound.
+if (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('.supabase.co:5432') || process.env.DATABASE_URL.includes('.supabase.co:6543'))) {
+  const match = process.env.DATABASE_URL.match(/postgres(?:ql)?:\/\/([^:]+):([^@]+)@db\.([^.]+)\.supabase\.co:(?:5432|6543)\/postgres/);
+  if (match) {
+    const [, user, pass, ref] = match;
+    // Map project refs to their correct regions if known, defaulting to ap-south-1 (Mumbai) or ap-southeast-1
+    const region = ref === 'otadwpqtlkngcphhcprh' ? 'ap-southeast-1' : 'ap-south-1';
+    process.env.DATABASE_URL = `postgresql://${user}.${ref}:${pass}@aws-0-${region}.pooler.supabase.com:6543/postgres?pgbouncer=true`;
   }
 }
 
