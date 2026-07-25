@@ -2,7 +2,7 @@ require('dotenv').config();
 
 // Programmatic fallback for DATABASE_URL if Render env is not set
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "postgresql://postgres.kysojwkojxwtdzeaejpl:Skandha2026_@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
+  process.env.DATABASE_URL = "postgresql://postgres.kysojwkojxwtdzeaejpl:Skandha2026_@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres";
 }
 
 // Auto-upgrade direct IPv6 host to IPv4 pooler if used on port 5432, since Render does not support IPv6 outbound.
@@ -10,9 +10,9 @@ if (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('.supabase.co
   const match = process.env.DATABASE_URL.match(/postgres(?:ql)?:\/\/([^:]+):([^@]+)@db\.([^.]+)\.supabase\.co:(?:5432|6543)\/postgres/);
   if (match) {
     const [, user, pass, ref] = match;
-    // Map project refs to their correct regions if known, defaulting to ap-south-1 (Mumbai) or ap-southeast-1
-    const region = ref === 'otadwpqtlkngcphhcprh' ? 'ap-southeast-1' : 'ap-south-1';
-    process.env.DATABASE_URL = `postgresql://${user}.${ref}:${pass}@aws-0-${region}.pooler.supabase.com:6543/postgres?pgbouncer=true`;
+    // Map project refs to their correct regions (otadwpqtlkngcphhcprh is ap-southeast-1, others default to ap-northeast-1 Tokyo)
+    const region = ref === 'otadwpqtlkngcphhcprh' ? 'ap-southeast-1' : 'ap-northeast-1';
+    process.env.DATABASE_URL = `postgresql://${user}.${ref}:${pass}@aws-0-${region}.pooler.supabase.com:5432/postgres`;
   }
 }
 
