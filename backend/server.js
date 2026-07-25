@@ -25,6 +25,7 @@ process.on('unhandledRejection', (err) => {
 
 // Supabase handles DB connection via .env now
 const app = express();
+app.set('trust proxy', 1); // Trust Render's proxy to get real client IP
 const PORT = process.env.PORT || 3001;
 
 // Helmet config: Allow unsafe-inline for Dev and styles, disable contentSecurityPolicy in Dev mode if needed
