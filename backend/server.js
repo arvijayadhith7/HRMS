@@ -5,8 +5,8 @@ if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = "postgresql://postgres:vijayaksith_7@db.otadwpqtlkngcphhcprh.supabase.co:6543/postgres?pgbouncer=true";
 }
 
-// Auto-upgrade to connection pooler (port 6543) if port 5432 is used, since Render does not support IPv6 outbound.
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes(':5432')) {
+// Auto-upgrade to connection pooler (port 6543) if direct IPv6 host is used on port 5432, since Render does not support IPv6 outbound.
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('db.otadwpqtlkngcphhcprh.supabase.co:5432')) {
   process.env.DATABASE_URL = process.env.DATABASE_URL.replace(':5432', ':6543');
   if (!process.env.DATABASE_URL.includes('pgbouncer')) {
     process.env.DATABASE_URL += (process.env.DATABASE_URL.includes('?') ? '&' : '?') + 'pgbouncer=true';
