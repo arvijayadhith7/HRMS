@@ -6,8 +6,8 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Auto-upgrade to connection pooler (port 6543) if port 5432 is used, since Render does not support IPv6 outbound.
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes(':5432/')) {
-  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(':5432/', ':6543/');
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes(':5432')) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(':5432', ':6543');
   if (!process.env.DATABASE_URL.includes('pgbouncer')) {
     process.env.DATABASE_URL += (process.env.DATABASE_URL.includes('?') ? '&' : '?') + 'pgbouncer=true';
   }
