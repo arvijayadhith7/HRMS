@@ -2,7 +2,15 @@ require('dotenv').config();
 
 // Programmatic fallback for DATABASE_URL if Render env is not set
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "postgresql://postgres:vijayaksith_7@db.otadwpqtlkngcphhcprh.supabase.co:5432/postgres";
+  process.env.DATABASE_URL = "postgresql://postgres:vijayaksith_7@db.otadwpqtlkngcphhcprh.supabase.co:6543/postgres?pgbouncer=true";
+}
+
+// Auto-upgrade to connection pooler (port 6543) if port 5432 is used, since Render does not support IPv6 outbound.
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes(':5432/')) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(':5432/', ':6543/');
+  if (!process.env.DATABASE_URL.includes('pgbouncer')) {
+    process.env.DATABASE_URL += (process.env.DATABASE_URL.includes('?') ? '&' : '?') + 'pgbouncer=true';
+  }
 }
 
 const express = require('express');
