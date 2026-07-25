@@ -1,4 +1,10 @@
 require('dotenv').config();
+
+// Programmatic fallback for DATABASE_URL if Render env is not set
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "postgresql://postgres:vijayaksith_7@db.otadwpqtlkngcphhcprh.supabase.co:5432/postgres";
+}
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
