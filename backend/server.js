@@ -1,8 +1,10 @@
 require('dotenv').config();
 
 // Programmatic fallback for DATABASE_URL if Render env is not set
+// NOTE: Set DATABASE_URL in your hosting platform (Render/Vercel env vars or .env file
+// Example Supabase format: postgresql://user:password@pooler.supabase.com:5432/postgres
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "postgresql://postgres.kysojwkojxwtdzeaejpl:Skandha2026_@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres";
+  console.warn('[WARN] DATABASE_URL not set. Please configure it in your environment before starting.');
 }
 
 // Auto-upgrade direct IPv6 host to IPv4 pooler if used on port 5432, since Render does not support IPv6 outbound.

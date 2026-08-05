@@ -15,6 +15,7 @@ model User {
   role         String         @default("employee")
   createdAt    DateTime       @default(now())
   refreshTokens RefreshToken[]
+  notifications Notification[]
 }
 
 model RefreshToken {
@@ -62,7 +63,6 @@ model Employee {
   expenses          ExpenseClaim[]
   documents         Document[]
   exitRecord        ExitRecord?
-  notifications     Notification[]
 }
 
 model Payroll {
@@ -243,7 +243,7 @@ model Notification {
   type      String   @default("info")
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
-  user      Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model QueryBox {

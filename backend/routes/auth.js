@@ -16,7 +16,10 @@ const loginLimiter = rateLimit({
 });
 
 
-const JWT_SECRET = process.env.JWT_SECRET || 'virtualnest-secret-change-in-prod';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('[FATAL] JWT_SECRET or JWT_ACCESS_SECRET must be set in environment variables. Auth disabled.');
+}
 const SALT_ROUNDS = 12;
 
 // Check and seed default accounts on load
