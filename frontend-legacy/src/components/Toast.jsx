@@ -10,9 +10,11 @@ export function notify(message, type = 'info') {
   return id;
 }
 
-export function toast.success(message) { return notify(message, 'success'); }
-export function toast.error(message) { return notify(message, 'error'); }
-export function toast.info(message) { return notify(message, 'info'); }
+export const toast = {
+  success: (msg) => notify(msg, 'success'),
+  error: (msg) => notify(msg, 'error'),
+  info: (msg) => notify(msg, 'info'),
+};
 
 export default function ToastContainer() {
   const [toasts, setToasts] = useState([]);
