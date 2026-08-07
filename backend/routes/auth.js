@@ -14,10 +14,10 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-
-const JWT_SECRET = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('[FATAL] JWT_SECRET or JWT_ACCESS_SECRET must be set in environment variables. Auth disabled.');
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET;
+  if (!secret) throw new Error('JWT_SECRET or JWT_ACCESS_SECRET must be set in environment variables.');
+  return secret;
 }
 const SALT_ROUNDS = 12;
 
@@ -116,7 +116,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const accessToken = jwt.sign(
       { userId: user.id, role: user.role, username: user.username },
-      JWT_SECRET, { expiresIn: '8h' }
+      getJwtSecret(), { expiresIn: '8h' }
     );
     res.json({ accessToken, user: { id: user.id, username: user.username, role: user.role, email: user.email } });
   } catch (err) {

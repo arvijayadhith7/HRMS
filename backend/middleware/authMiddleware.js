@@ -1,7 +1,9 @@
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('[FATAL] JWT_SECRET or JWT_ACCESS_SECRET must be set in environment variables.');
+
+function getSecret() {
+  const secret = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET;
+  if (!secret) throw new Error('JWT_SECRET or JWT_ACCESS_SECRET must be set in environment variables.');
+  return secret;
 }
 
 module.exports = function authMiddleware(req, res, next) {
@@ -11,7 +13,7 @@ module.exports = function authMiddleware(req, res, next) {
 
   const token = header.split(' ')[1];
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(token, getSecret());
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' });
