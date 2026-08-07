@@ -24,16 +24,16 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const prisma = require('./lib/prisma');
 
-// Process-level Crash Prevention
+// Process-level Resilience: log errors but keep the server alive so
+// transient DB / Prisma issues don't cause crash-loops.
 process.on('uncaughtException', (err) => {
-  console.error('[UNCAUGHT EXCEPTION] 🔥 Shutting down gracefully...', err.name, err.message, err.stack);
-  process.exit(1);
+  console.error('[UNCAUGHT EXCEPTION]', err?.name, err?.message, err?.stack);
 });
 
 process.on('unhandledRejection', (err) => {
-  console.error('[UNHANDLED REJECTION] 💥 Shutting down gracefully...', err.name, err.message);
-  process.exit(1);
+  console.error('[UNHANDLED REJECTION]', err?.name, err?.message);
 });
 
 // Supabase handles DB connection via .env now
@@ -98,7 +98,21 @@ app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/exit', require('./routes/exit'));
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '1.0.0' }));
+// Health endpoint for Render / load balancer health checks.
+app.get('/api/health', async (req, res) => {
+  let db = 'ok';
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch (e) {
+    db = 'down';
+  }
+  res.status(200).json({
+    status: 'ok',
+    version: '1.0.0',
+    db,
+    time: new Date().toISOString(),
+  });
+});
 
 // 404 handler
 app.use('/api/*', (req, res) => {
