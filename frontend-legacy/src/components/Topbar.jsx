@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Mail, HelpCircle, X, Send } from 'lucide-react';
+import { Mail, HelpCircle, X, Send, User } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import { toast } from './Toast';
+import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 
 export default function Topbar() {
   const location = useLocation();
+  const { user } = useAuth();
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [message, setMessage] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
   // Generate breadcrumb from pathname
@@ -22,12 +25,17 @@ export default function Topbar() {
     if (!message.trim()) return;
     setSubmitting(true);
     try {
-      await api.post('/helpdesk', { message, isAnonymous });
-      alert('Your query has been submitted successfully to HR/Admins!');
+      await api.post('/helpdesk', {
+        message,
+        isAnonymous,
+        name: isAnonymous ? null : user?.username,
+        contact: isAnonymous ? null : user?.email
+      });
+      toast.success('Your query has been submitted successfully to HR/Admins!');
       setMessage('');
       setShowSupportModal(false);
     } catch (err) {
-      alert('Failed to submit query. Please try again.');
+      toast.error('Failed to submit query. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -75,8 +83,20 @@ export default function Topbar() {
 
             <form onSubmit={handleSupportSubmit} className="p-6 space-y-4">
               <p className="text-xs text-text-secondary">
-                Submit queries, issues, or suggestions. If submitted anonymously, your identity will not be visible to HR/Admins.
+                Submit queries, issues, or suggestions. HR/Admins will be able to see your identity unless you choose to submit anonymously.
               </p>
+
+              {user && !isAnonymous && (
+                <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-text-primary">{user.username}</p>
+                    <p className="text-[11px] text-text-secondary">{user.email}</p>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Message / Issue / Query</label>

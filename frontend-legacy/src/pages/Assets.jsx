@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { Laptop } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
+import { toast } from '../components/Toast';
 
 export default function Assets() {
   const [assets, setAssets] = useState([]);
@@ -24,7 +25,7 @@ export default function Assets() {
       setShowModal(false);
       setFormData({ name: '', type: 'Laptop', serialNo: '', status: 'available', employeeId: '' });
       loadData();
-    } catch (err) { alert(err.response?.data?.error || err.message); }
+    } catch (err) { toast.error(err.response?.data?.error || err.message); }
   };
 
   return (

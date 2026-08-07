@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
+import { toast } from '../components/Toast';
 import { User, Lock, Save, Key, UserCircle, Briefcase, Mail, Calendar, Phone, Home, Building, Camera } from 'lucide-react';
 
 export default function MyProfile() {
@@ -58,10 +59,10 @@ export default function MyProfile() {
     setSaving(true);
     try {
       await api.put(`/employees/${employee.id}`, formData);
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
       fetchProfile();
     } catch (err) {
-      alert('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setSaving(false);
     }

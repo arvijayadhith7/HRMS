@@ -1,15 +1,14 @@
 const router = require('express').Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 const authMiddleware = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 
 // Strict Rate Limiter for Login (Brute-force mitigation)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 login requests per windowMs
+  max: 10, // limit each IP to 10 login requests per windowMs
   message: { error: 'Too many login attempts from this IP, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -79,9 +78,15 @@ async function ensureDefaultAccountsExist() {
   }
 }
 
-// POST /api/auth/register
-router.post('/register', async (req, res) => {
+// POST /api/auth/register (admin/hr only)
+router.post('/register', authMiddleware, async (req, res) => {
   try {
+    if (!['admin', 'hr'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only admin or HR can register new users' });
+    }
+    if (role === 'admin' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admin can create admin accounts' });
+    }
     const { username, email, password, role } = req.body;
     const existing = await prisma.user.findFirst({ where: { OR: [{ email }, { username }] } });
     if (existing) {

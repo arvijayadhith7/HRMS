@@ -20,10 +20,17 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '20px', color: 'red', background: 'white' }}>
-          <h1>Something went wrong.</h1>
-          <pre style={{ whiteSpace: 'pre-wrap' }}>{this.state.error?.toString()}</pre>
-          <pre style={{ whiteSpace: 'pre-wrap' }}>{this.state.error?.stack}</pre>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '0.5rem' }}>Something went wrong</h1>
+            <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>An unexpected error occurred. Please try refreshing the page.</p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{ padding: '0.5rem 1.5rem', background: '#5c2d91', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600' }}
+            >
+              Refresh Page
+            </button>
+          </div>
         </div>
       );
     }

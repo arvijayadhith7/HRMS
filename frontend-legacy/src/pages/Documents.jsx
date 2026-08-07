@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { FileText, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
+import { toast } from '../components/Toast';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Documents() {
@@ -40,7 +41,7 @@ export default function Documents() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!formData.employeeId) return alert('Please select an employee');
+      if (!formData.employeeId) return toast.error('Please select an employee');
       const payload = { ...formData, employeeId: Number(formData.employeeId) };
       
       if (formData.id) {
@@ -54,7 +55,7 @@ export default function Documents() {
       setShowModal(false);
       setFormData({ id: null, title: '', type: 'id_proof', fileUrl: '', employeeId: user?.role === 'employee' ? employees[0]?.id || '' : '' });
       loadData();
-    } catch (err) { alert(err.response?.data?.error || err.message); }
+    } catch (err) { toast.error(err.response?.data?.error || err.message); }
   };
 
   const handleStatusChange = async (id, status, reason = null) => {
@@ -67,7 +68,7 @@ export default function Documents() {
       await api.put(`/documents/${id}`, { verificationStatus: status, rejectionReason: promptReason });
       loadData();
     } catch (err) {
-      alert('Failed to update document status');
+      toast.error('Failed to update document status');
     }
   };
 

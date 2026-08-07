@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, CheckCircle, Clock } from 'lucide-react';
+import { MessageSquare, CheckCircle, Clock, User, Mail } from 'lucide-react';
 import api from '../utils/api';
+import { toast } from '../components/Toast';
 
 export default function FeedbackAdmin() {
   const [feedback, setFeedback] = useState([]);
@@ -26,7 +27,7 @@ export default function FeedbackAdmin() {
       await api.put(`/feedback/${id}`, { status: 'RESOLVED' });
       fetchFeedback();
     } catch (err) {
-      alert('Failed to update status');
+      toast.error('Failed to update status');
     }
   };
 
@@ -52,9 +53,20 @@ export default function FeedbackAdmin() {
             <div key={f.id} className="bg-surface border border-border rounded-xl p-6 shadow-sm flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-text-primary">{f.name || 'Anonymous'}</h3>
-                    <p className="text-xs text-text-secondary">{f.contact || 'No contact provided'}</p>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                      f.isAnonymous || !f.name ? 'bg-secondary/10' : 'bg-primary/10'
+                    }`}>
+                      <User className={`w-5 h-5 ${f.isAnonymous || !f.name ? 'text-secondary' : 'text-primary'}`} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-text-primary text-sm">{f.name || 'Anonymous'}</h3>
+                      {f.contact && (
+                        <p className="text-[11px] text-secondary flex items-center gap-1">
+                          <Mail className="w-3 h-3" /> {f.contact}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
                     f.status === 'RESOLVED' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'

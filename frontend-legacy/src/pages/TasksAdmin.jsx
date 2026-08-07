@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle, Clock, Edit3, LayoutTemplate, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import EmptyState from '../components/EmptyState';
+import { toast } from '../components/Toast';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 
@@ -48,7 +49,7 @@ export default function TasksAdmin() {
       setShowModal(false);
       fetchTasks();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to create task');
+      toast.error(err.response?.data?.error || 'Failed to create task');
     }
   };
 

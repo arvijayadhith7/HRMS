@@ -6,6 +6,15 @@ let mainWindow, backendProcess, tray;
 const isDev = !app.isPackaged;
 const PORT = 3001;
 
+// Suppress EPIPE errors when terminal pipe is broken
+process.on('uncaughtException', (err) => {
+  if (err.code === 'EPIPE') return;
+  console.error(err);
+});
+process.on('unhandledRejection', (err) => {
+  if (err && err.code === 'EPIPE') return;
+});
+
 function startBackend() {
   if (isDev) {
     console.log('[Electron] Running in dev mode: backend should run concurrently.');

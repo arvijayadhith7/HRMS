@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function Recruitment() {
   const [jobs, setJobs] = useState([]);
@@ -25,6 +26,7 @@ export default function Recruitment() {
   const [candidateFormData, setCandidateFormData] = useState({
     jobId: null, firstName: '', lastName: '', email: '', phone: '', resumeUrl: '', notes: '', status: 'applied'
   });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, onConfirm: null });
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -74,13 +76,17 @@ export default function Recruitment() {
   };
 
   const handleDeleteJob = async (id) => {
-    if (!confirm('Are you sure you want to delete this job opening?')) return;
-    try {
-      await api.delete(`/recruitment/jobs/${id}`);
-      fetchJobs();
-    } catch (err) {
-      console.error(err);
-    }
+    setConfirmModal({
+      isOpen: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/recruitment/jobs/${id}`);
+          fetchJobs();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    });
   };
 
   const handleOpenCandidateModal = (job) => {
@@ -321,6 +327,15 @@ export default function Recruitment() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Delete Job Opening"
+        message="Are you sure you want to delete this job opening? This action cannot be undone."
+        danger
+        onConfirm={async () => { await confirmModal.onConfirm(); setConfirmModal({ isOpen: false, onConfirm: null }); }}
+        onCancel={() => setConfirmModal({ isOpen: false, onConfirm: null })}
+      />
     </div>
   );
 }

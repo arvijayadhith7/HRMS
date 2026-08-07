@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { Target } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
+import { toast } from '../components/Toast';
 
 export default function Performance() {
   const [reviews, setReviews] = useState([]);
@@ -18,13 +19,13 @@ export default function Performance() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!formData.employeeId) return alert('Please select an employee');
+      if (!formData.employeeId) return toast.error('Please select an employee');
       const payload = { ...formData, employeeId: Number(formData.employeeId), reviewerId: Number(formData.reviewerId), rating: Number(formData.rating) };
       await api.post('/performance', payload);
       setShowModal(false);
       setFormData({ employeeId: '', reviewerId: '1', period: '2026-Q1', goals: '', kpis: '', rating: '5', comments: '' });
       loadData();
-    } catch (err) { alert(err.response?.data?.error || err.message); }
+    } catch (err) { toast.error(err.response?.data?.error || err.message); }
   };
 
   return (

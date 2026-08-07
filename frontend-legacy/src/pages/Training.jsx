@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { BookOpen } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
+import { toast } from '../components/Toast';
 
 export default function Training() {
   const [programs, setPrograms] = useState([]);
@@ -19,7 +20,7 @@ export default function Training() {
       setShowModal(false);
       setFormData({ title: '', description: '', duration: '', instructor: '' });
       loadPrograms();
-    } catch (err) { alert(err.response?.data?.error || err.message); }
+    } catch (err) { toast.error(err.response?.data?.error || err.message); }
   };
 
   return (

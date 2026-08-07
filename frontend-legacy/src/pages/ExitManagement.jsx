@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { LogOut } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
+import { toast } from '../components/Toast';
 
 export default function ExitManagement() {
   const [exits, setExits] = useState([]);
@@ -18,7 +19,7 @@ export default function ExitManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!formData.employeeId) return alert('Please select an employee');
+      if (!formData.employeeId) return toast.error('Please select an employee');
       const payload = { 
         ...formData, 
         employeeId: Number(formData.employeeId),
@@ -29,7 +30,7 @@ export default function ExitManagement() {
       setShowModal(false);
       setFormData({ employeeId: '', resignationDate: '', lastWorkingDay: '', reason: '' });
       loadData();
-    } catch (err) { alert(err.response?.data?.error || err.message); }
+    } catch (err) { toast.error(err.response?.data?.error || err.message); }
   };
 
   return (

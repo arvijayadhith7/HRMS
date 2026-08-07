@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { Building2, Clock, Save } from 'lucide-react';
+import { toast } from '../components/Toast';
 import { motion } from 'framer-motion';
 
 export default function SettingsAdmin() {
@@ -41,9 +42,9 @@ export default function SettingsAdmin() {
     try {
       const payload = Object.keys(settings).map(k => ({ key: k, value: settings[k] }));
       await api.post('/settings', { settings: payload });
-      alert('Settings saved successfully');
+      toast.success('Settings saved successfully');
     } catch (err) {
-      alert('Failed to save settings');
+      toast.error('Failed to save settings');
     } finally {
       setSaving(false);
     }

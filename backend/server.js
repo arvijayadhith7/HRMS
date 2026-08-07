@@ -46,7 +46,22 @@ app.use(helmet({
   contentSecurityPolicy: false
 }));
 
-app.use(cors({ origin: true, credentials: true }));
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3001',
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('file://')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' })); // Support base64 image uploads
 
@@ -73,6 +88,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/helpdesk', require('./routes/helpdesk'));
+app.use('/api/feedback', require('./routes/feedback'));
 
 // New HR Modules
 app.use('/api/performance', require('./routes/performance'));
@@ -84,11 +100,16 @@ app.use('/api/exit', require('./routes/exit'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '1.0.0' }));
 
+// 404 handler
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
 // Global Error Handling Middleware (Crash Prevention at the Route Level)
 app.use((err, req, res, next) => {
-  console.error('[GLOBAL ERROR HANDLER]', err.stack);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
+  const status = err.status || 500;
+  res.status(status).json({
+    error: status === 500 ? 'Internal Server Error' : err.message,
     status: 'error'
   });
 });

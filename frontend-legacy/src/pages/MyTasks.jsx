@@ -3,6 +3,7 @@ import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import SkeletonLoader from '../components/SkeletonLoader';
 import EmptyState from '../components/EmptyState';
+import { toast } from '../components/Toast';
 import { motion } from 'framer-motion';
 import { LayoutTemplate, CheckCircle, Calendar } from 'lucide-react';
 
@@ -36,7 +37,7 @@ export default function MyTasks() {
       await api.patch(`/tasks/${taskId}`, { status: newStatus });
       fetchTasks();
     } catch (err) {
-      alert('Failed to update task status');
+      toast.error('Failed to update task status');
     }
   };
 

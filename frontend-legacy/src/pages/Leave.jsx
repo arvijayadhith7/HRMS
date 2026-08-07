@@ -3,6 +3,7 @@ import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import { motion } from 'framer-motion';
 import Chart from 'chart.js/auto';
+import { toast } from '../components/Toast';
 import { Calendar, Briefcase, Clock, Plane, Check, X, AlertCircle } from 'lucide-react';
 
 export default function Leave() {
@@ -174,7 +175,7 @@ export default function Leave() {
       await api.put(`/leave/${id}`, { status });
       fetchLeaves();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to update leave status');
+      toast.error(err.response?.data?.error || 'Failed to update leave status');
     }
   };
 

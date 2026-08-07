@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, X, Send } from 'lucide-react';
+import { MessageSquare, X, Send, User, Mail } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -8,10 +8,11 @@ export default function QueriesBox() {
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [message, setMessage] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
 
-  const { user } = useAuth(); // Might be null if anonymous
+  const { user } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,11 +20,17 @@ export default function QueriesBox() {
     setStatusMsg('');
 
     try {
-      await api.post('/feedback', {
-        name: user ? `${user.username} (Logged In)` : name,
-        contact: user ? user.email : contact,
-        message
-      });
+      const payload = { message };
+      if (user && !isAnonymous) {
+        payload.name = user.username;
+        payload.contact = user.email;
+        payload.isAnonymous = false;
+      } else if (isAnonymous || !user) {
+        payload.name = name || null;
+        payload.contact = contact || null;
+        payload.isAnonymous = !name && !user;
+      }
+      await api.post('/feedback', payload);
       setStatusMsg('Query submitted successfully!');
       setTimeout(() => {
         setIsOpen(false);
@@ -31,6 +38,7 @@ export default function QueriesBox() {
         setMessage('');
         setName('');
         setContact('');
+        setIsAnonymous(false);
       }, 2000);
     } catch (err) {
       setStatusMsg('Failed to submit. Please try again.');
@@ -55,15 +63,36 @@ export default function QueriesBox() {
                 {statusMsg}
               </div>
             )}
-            
-            {!user && (
+
+            {user && !isAnonymous && (
+              <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-text-primary">{user.username}</p>
+                  <p className="text-[11px] text-secondary flex items-center gap-1">
+                    <Mail className="w-3 h-3" /> {user.email}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {user && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} className="rounded border-border text-primary focus:ring-0" />
+                <span className="text-xs font-semibold text-secondary">Submit anonymously</span>
+              </label>
+            )}
+
+            {(!user || isAnonymous) && (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1">Name (Optional)</label>
+                  <label className="block text-xs font-semibold text-secondary mb-1">Name {user ? '(Optional)' : ''}</label>
                   <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-primary" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-secondary mb-1">Contact (Email/Phone) (Optional)</label>
+                  <label className="block text-xs font-semibold text-secondary mb-1">Contact (Email/Phone) {user ? '(Optional)' : ''}</label>
                   <input type="text" value={contact} onChange={e => setContact(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm outline-none focus:border-primary" />
                 </div>
               </>

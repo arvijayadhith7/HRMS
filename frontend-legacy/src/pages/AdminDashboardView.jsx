@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, CheckCircle, Clock, CreditCard, ChevronRight, Megaphone, Calendar, TrendingUp, X, Trophy } from 'lucide-react';
 import SkeletonLoader from '../components/SkeletonLoader';
 import EmptyState from '../components/EmptyState';
+import { toast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
@@ -27,11 +28,11 @@ export default function AdminDashboardView({ stats, employees, announcements, de
         assignedTo: selectedEmployeeForTask.id,
         dueDate: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : undefined
       });
-      alert('Task assigned successfully!');
+      toast.success('Task assigned successfully!');
       setSelectedEmployeeForTask(null);
       setTaskForm({ title: '', description: '', priority: 'medium', dueDate: '' });
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to assign task');
+      toast.error(err.response?.data?.error || 'Failed to assign task');
     } finally {
       setTaskLoading(false);
     }

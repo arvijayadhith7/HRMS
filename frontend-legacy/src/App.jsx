@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
 import PrivateRoute from './components/PrivateRoute';
 import QueriesBox from './components/QueriesBox';
+import ToastContainer from './components/Toast';
 import { AuthProvider } from './hooks/useAuth';
 import Layout from './components/Layout';
 
@@ -103,6 +104,7 @@ export default function App() {
       <BrowserRouter>
         <AppRoutes />
         <QueriesBox />
+        <ToastContainer />
         <Analytics />
       </BrowserRouter>
     </AuthProvider>

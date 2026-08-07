@@ -3,6 +3,8 @@ import api from '../utils/api';
 import { motion } from 'framer-motion';
 import SkeletonLoader from '../components/SkeletonLoader';
 import EmptyState from '../components/EmptyState';
+import ConfirmModal from '../components/ConfirmModal';
+import { toast } from '../components/Toast';
 import { useAuth } from '../hooks/useAuth';
 import { Megaphone, Calendar, AlertTriangle, X, Trash2, Plus, Pin } from 'lucide-react';
 
@@ -14,6 +16,7 @@ export default function AnnouncementsAdmin() {
   const [formData, setFormData] = useState({
     title: '', content: '', type: 'news', isPinned: false, photo: ''
   });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, onConfirm: null });
 
   const fetchAnnouncements = async () => {
     setLoading(true);
@@ -38,19 +41,22 @@ export default function AnnouncementsAdmin() {
       setShowModal(false);
       fetchAnnouncements();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to post announcement');
+      toast.error(err.response?.data?.error || 'Failed to post announcement');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Delete this announcement?')) {
-      try {
-        await api.delete(`/announcements/${id}`);
-        fetchAnnouncements();
-      } catch (err) {
-        alert('Failed to delete');
+    setConfirmModal({
+      isOpen: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/announcements/${id}`);
+          fetchAnnouncements();
+        } catch (err) {
+          toast.error('Failed to delete');
+        }
       }
-    }
+    });
   };
 
   const getIconForType = (type) => {
@@ -215,6 +221,15 @@ export default function AnnouncementsAdmin() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Delete Announcement"
+        message="Are you sure you want to delete this announcement? This action cannot be undone."
+        danger
+        onConfirm={async () => { await confirmModal.onConfirm(); setConfirmModal({ isOpen: false, onConfirm: null }); }}
+        onCancel={() => setConfirmModal({ isOpen: false, onConfirm: null })}
+      />
     </div>
   );
 }

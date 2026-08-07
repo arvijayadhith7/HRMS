@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { Receipt } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
+import { toast } from '../components/Toast';
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState([]);
@@ -18,13 +19,13 @@ export default function Expenses() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!formData.employeeId) return alert('Please select an employee');
+      if (!formData.employeeId) return toast.error('Please select an employee');
       const payload = { ...formData, amount: parseFloat(formData.amount), employeeId: Number(formData.employeeId) };
       await api.post('/expenses', payload);
       setShowModal(false);
       setFormData({ title: '', amount: '', category: 'Travel', employeeId: '' });
       loadData();
-    } catch (err) { alert(err.response?.data?.error || err.message); }
+    } catch (err) { toast.error(err.response?.data?.error || err.message); }
   };
 
   return (

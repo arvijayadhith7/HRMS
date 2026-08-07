@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { jsPDF } from 'jspdf';
 import { motion } from 'framer-motion';
+import ConfirmModal from '../components/ConfirmModal';
+import { toast } from '../components/Toast';
 import { Settings, CreditCard, Calculator, CheckCircle, AlertCircle, FileText, Check, Trash2, Download } from 'lucide-react';
 
 export default function Payroll() {
@@ -11,6 +13,7 @@ export default function Payroll() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [errMessage, setErrMessage] = useState('');
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, onConfirm: null });
 
   const fetchPayrolls = async () => {
     setLoading(true);
@@ -50,19 +53,22 @@ export default function Payroll() {
       await api.put(`/payroll/${id}`, { status });
       fetchPayrolls();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to update payroll status');
+      toast.error(err.response?.data?.error || 'Failed to update payroll status');
     }
   };
 
   const handleDeletePayroll = async (id) => {
-    if (window.confirm('Delete this payslip permanently?')) {
-      try {
-        await api.delete(`/payroll/${id}`);
-        fetchPayrolls();
-      } catch (err) {
-        alert(err.response?.data?.error || 'Failed to delete payroll');
+    setConfirmModal({
+      isOpen: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/payroll/${id}`);
+          fetchPayrolls();
+        } catch (err) {
+          toast.error(err.response?.data?.error || 'Failed to delete payroll');
+        }
       }
-    }
+    });
   };
 
   const getMonthName = (m) => {
@@ -734,6 +740,15 @@ export default function Payroll() {
           </div>
         )}
       </motion.div>
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Delete Payslip"
+        message="Are you sure you want to delete this payslip permanently? This action cannot be undone."
+        danger
+        onConfirm={async () => { await confirmModal.onConfirm(); setConfirmModal({ isOpen: false, onConfirm: null }); }}
+        onCancel={() => setConfirmModal({ isOpen: false, onConfirm: null })}
+      />
     </div>
   );
 }

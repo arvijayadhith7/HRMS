@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import api from '../utils/api';
+import ConfirmModal from '../components/ConfirmModal';
+import { toast } from '../components/Toast';
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -47,6 +49,15 @@ export default function Employees() {
     altPhone: '', permanentAddress: ''
   });
   const [formError, setFormError] = useState('');
+
+  // Confirm Modal State
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    danger: false
+  });
 
   const fetchEmployees = async () => {
     setLoading(true);
@@ -139,27 +150,39 @@ export default function Employees() {
 
   const handleDeleteEmployee = async (id) => {
     setShowActionDropdown(null);
-    if (window.confirm('Are you sure you want to delete this employee?')) {
-      try {
-        await api.delete(`/employees/${id}`);
-        fetchEmployees();
-        setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-      } catch (err) {
-        alert(err.response?.data?.error || 'Failed to delete employee');
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Employee',
+      message: 'Are you sure you want to delete this employee? This action cannot be undone.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/employees/${id}`);
+          fetchEmployees();
+          setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+        } catch (err) {
+          toast.error(err.response?.data?.error || 'Failed to delete employee');
+        }
       }
-    }
+    });
   };
 
   const handleBulkDelete = async () => {
-    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} employees?`)) {
-      try {
-        await Promise.all(selectedIds.map(id => api.delete(`/employees/${id}`)));
-        setSelectedIds([]);
-        fetchEmployees();
-      } catch (err) {
-        alert('Failed to delete some employees');
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Employees',
+      message: `Are you sure you want to delete ${selectedIds.length} employees? This action cannot be undone.`,
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await Promise.all(selectedIds.map(id => api.delete(`/employees/${id}`)));
+          setSelectedIds([]);
+          fetchEmployees();
+        } catch (err) {
+          toast.error('Failed to delete some employees');
+        }
       }
-    }
+    });
   };
 
   const handleSelectAll = (e) => {
@@ -820,6 +843,15 @@ export default function Employees() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        danger={confirmModal.danger}
+        onConfirm={() => { confirmModal.onConfirm(); setConfirmModal(prev => ({ ...prev, isOpen: false })); }}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
     </div>
   );
