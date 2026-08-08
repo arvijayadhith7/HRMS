@@ -1,14 +1,10 @@
 require('dotenv').config();
 
-// Production fallbacks for env vars (temporary — set these in Render dashboard)
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'postgresql://postgres.kysojwkojxwtdzeaejpl:Skandha2026_@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres';
+  console.warn('[WARN] DATABASE_URL not set. Please configure it in your environment.');
 }
 if (!process.env.JWT_SECRET && !process.env.JWT_ACCESS_SECRET) {
-  process.env.JWT_SECRET = 'vn-production-secret-key-2026';
-}
-if (!process.env.FRONTEND_URL) {
-  process.env.FRONTEND_URL = 'https://hrms-nu-two.vercel.app';
+  console.warn('[WARN] JWT_SECRET not set. Please configure it in your environment.');
 }
 
 // Auto-upgrade direct IPv6 host to IPv4 pooler if used on port 5432, since Render does not support IPv6 outbound.
