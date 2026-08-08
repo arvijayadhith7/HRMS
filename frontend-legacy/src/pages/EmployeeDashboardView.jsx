@@ -93,7 +93,7 @@ export default function EmployeeDashboardView({
         {[
           { label: 'Assigned Tasks', value: tasks.length, icon: FileText, color: 'text-primary', bg: 'bg-primary/5', link: '/my-tasks' },
           { label: 'Pending Tasks', value: pendingTasks.length, icon: Clock, color: 'text-warning', bg: 'bg-warning/5' },
-          { label: 'Work Percentage', value: `${tasks.length === 0 ? 100 : Math.round((completedTasks.length / tasks.length) * 100)}%`, icon: Activity, color: 'text-success', bg: 'bg-success/5' },
+          { label: 'Work Percentage', value: `${tasks.length === 0 ? 0 : Math.round((completedTasks.length / tasks.length) * 100)}%`, icon: Activity, color: 'text-success', bg: 'bg-success/5' },
           { label: 'Earned Leave', value: personalBalances?.earned?.remaining || 0, icon: Calendar, color: 'text-secondary', bg: 'bg-secondary/5', link: '/leave' }
         ].map((card, idx) => (
           <motion.div 
