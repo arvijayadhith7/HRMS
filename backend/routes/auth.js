@@ -35,6 +35,18 @@ async function ensureDefaultAccountsExist() {
       }
     });
 
+    const hrHash = await bcrypt.hash('HR@2026', SALT_ROUNDS);
+    await prisma.user.upsert({
+      where: { email: 'HR@vn.com' },
+      update: { passwordHash: hrHash, role: 'hr' },
+      create: {
+        username: 'hr_manager',
+        email: 'HR@vn.com',
+        passwordHash: hrHash,
+        role: 'hr'
+      }
+    });
+
     const adminEmp = await prisma.employee.findUnique({ where: { email: 'admin@virtualnest.com' } });
     if (!adminEmp) {
       await prisma.employee.create({
