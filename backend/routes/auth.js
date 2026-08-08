@@ -36,7 +36,6 @@ async function ensureDefaultAccountsExist() {
       }
     });
 
-    // Ensure Admin employee record exists
     const adminEmp = await prisma.employee.findUnique({ where: { email: 'admin@virtualnest.com' } });
     if (!adminEmp) {
       await prisma.employee.create({
@@ -54,7 +53,6 @@ async function ensureDefaultAccountsExist() {
       });
     }
 
-    // Ensure HR employee record exists
     const hrEmp = await prisma.employee.findUnique({ where: { email: 'HR@vn.com' } });
     if (!hrEmp) {
       await prisma.employee.create({
@@ -74,7 +72,7 @@ async function ensureDefaultAccountsExist() {
 
     console.log('[Auth] Admin/HR accounts and employee records verified.');
   } catch (err) {
-    console.error('[Auth] Failed to seed default accounts/employees: ', err);
+    console.error('[Auth] Failed to seed default accounts/employees:', err?.name, err?.message);
   }
 }
 
@@ -122,8 +120,8 @@ router.post('/login', loginLimiter, async (req, res) => {
     );
     res.json({ accessToken, user: { id: user.id, username: user.username, role: user.role, email: user.email } });
   } catch (err) {
-    console.error('[Login Error]', err?.message);
-    res.status(500).json({ error: 'Login failed. Please try again later.' });
+    console.error('[Login Error]', err?.name, err?.message);
+    res.status(500).json({ error: 'Login failed. Please try again later.', detail: process.env.NODE_ENV !== 'production' ? err.message : undefined });
   }
 });
 

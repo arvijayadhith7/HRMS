@@ -109,12 +109,18 @@ app.get('/api/health', async (req, res) => {
     await prisma.$queryRaw`SELECT 1`;
   } catch (e) {
     db = 'down';
+    console.error('[Health] DB check failed:', e?.message);
   }
   res.status(200).json({
     status: 'ok',
     version: '1.0.0',
     db,
     time: new Date().toISOString(),
+    env: {
+      DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
+      JWT_SECRET: (process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET) ? 'SET' : 'MISSING',
+      FRONTEND_URL: process.env.FRONTEND_URL || 'NOT SET',
+    }
   });
 });
 
