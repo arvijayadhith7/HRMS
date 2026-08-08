@@ -120,8 +120,8 @@ router.post('/login', loginLimiter, async (req, res) => {
     );
     res.json({ accessToken, user: { id: user.id, username: user.username, role: user.role, email: user.email } });
   } catch (err) {
-    console.error('[Login Error]', err?.name, err?.message);
-    res.status(500).json({ error: 'Login failed. Please try again later.', detail: process.env.NODE_ENV !== 'production' ? err.message : undefined });
+    console.error('[Login Error]', err?.name, err?.message, err?.stack);
+    res.status(500).json({ error: 'Login failed. Please try again later.', detail: err.message });
   }
 });
 

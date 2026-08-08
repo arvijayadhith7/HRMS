@@ -59,7 +59,7 @@ export default function Login() {
 
       setTimeout(() => navigate('/'), 800);
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid credentials or connection error');
+      setError(err.response?.data?.detail || err.response?.data?.error || 'Invalid credentials or connection error');
 
       // Error: subtle shake
       gsap.to(cardRef.current, {
