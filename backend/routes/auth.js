@@ -81,13 +81,13 @@ async function ensureDefaultAccountsExist() {
 // POST /api/auth/register (admin/hr only)
 router.post('/register', authMiddleware, async (req, res) => {
   try {
+    const { username, email, password, role } = req.body;
     if (!['admin', 'hr'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Only admin or HR can register new users' });
     }
     if (role === 'admin' && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Only admin can create admin accounts' });
     }
-    const { username, email, password, role } = req.body;
     const existing = await prisma.user.findFirst({ where: { OR: [{ email }, { username }] } });
     if (existing) {
       return res.status(400).json({ error: 'Username or email already exists' });
@@ -106,8 +106,10 @@ router.post('/register', authMiddleware, async (req, res) => {
 // POST /api/auth/login
 router.post('/login', loginLimiter, async (req, res) => {
   try {
-    await ensureDefaultAccountsExist(); // Ensure default accounts exist
+    await ensureDefaultAccountsExist();
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
@@ -120,7 +122,8 @@ router.post('/login', loginLimiter, async (req, res) => {
     );
     res.json({ accessToken, user: { id: user.id, username: user.username, role: user.role, email: user.email } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Login Error]', err?.message);
+    res.status(500).json({ error: 'Login failed. Please try again later.' });
   }
 });
 

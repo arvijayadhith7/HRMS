@@ -125,6 +125,7 @@ app.use('/api/*', (req, res) => {
 
 // Global Error Handling Middleware (Crash Prevention at the Route Level)
 app.use((err, req, res, next) => {
+  console.error('[ERROR]', err?.message);
   const status = err.status || 500;
   res.status(status).json({
     error: status === 500 ? 'Internal Server Error' : err.message,
