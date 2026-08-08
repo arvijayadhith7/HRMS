@@ -162,10 +162,11 @@ router.put('/:id', async (req, res) => {
         where: { email: { equals: updated.employee.email, mode: 'insensitive' } }
       });
       if (employeeUser) {
+        const emoji = status === 'approved' ? '😊' : '😔';
         await prisma.notification.create({
           data: {
             userId: employeeUser.id,
-            title: `Leave Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            title: `${emoji} Leave Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
             message: `Your leave request from ${new Date(updated.fromDate).toLocaleDateString()} to ${new Date(updated.toDate).toLocaleDateString()} has been ${status}.`,
             type: status === 'approved' ? 'success' : 'danger'
           }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -9,6 +10,7 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const fetchNotifications = async () => {
     try {
@@ -99,7 +101,13 @@ export default function NotificationBell() {
                 {notifications.map(notif => (
                   <li 
                     key={notif.id} 
-                    onClick={() => !notif.read && markAsRead(notif.id)}
+                    onClick={() => {
+                      if (!notif.read) markAsRead(notif.id);
+                      if (notif.title && notif.title.toLowerCase().includes('leave')) {
+                        setIsOpen(false);
+                        navigate('/leave');
+                      }
+                    }}
                     className={`p-4 hover:bg-background cursor-pointer transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
                   >
                     <div className="flex gap-3">
