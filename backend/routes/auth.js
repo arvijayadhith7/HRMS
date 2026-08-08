@@ -20,72 +20,42 @@ function getJwtSecret() {
 }
 const SALT_ROUNDS = 12;
 
-// Check and seed default accounts on load
+// Pre-hash passwords once at module load (bcrypt is slow)
+const ADMIN_HASH = bcrypt.hashSync('admin@vn', SALT_ROUNDS);
+const HR_HASH = bcrypt.hashSync('HR@2026', SALT_ROUNDS);
+
+// Seed default accounts once on startup
+let seeded = false;
 async function ensureDefaultAccountsExist() {
+  if (seeded) return;
   try {
-    const adminHash = await bcrypt.hash('admin@vn', SALT_ROUNDS);
     await prisma.user.upsert({
       where: { email: 'admin@virtualnest.com' },
-      update: { passwordHash: adminHash, role: 'admin' },
-      create: {
-        username: 'admin',
-        email: 'admin@virtualnest.com',
-        passwordHash: adminHash,
-        role: 'admin'
-      }
+      update: { passwordHash: ADMIN_HASH, role: 'admin' },
+      create: { username: 'admin', email: 'admin@virtualnest.com', passwordHash: ADMIN_HASH, role: 'admin' }
     });
-
-    const hrHash = await bcrypt.hash('HR@2026', SALT_ROUNDS);
     await prisma.user.upsert({
       where: { email: 'HR@vn.com' },
-      update: { passwordHash: hrHash, role: 'hr' },
-      create: {
-        username: 'hr_manager',
-        email: 'HR@vn.com',
-        passwordHash: hrHash,
-        role: 'hr'
-      }
+      update: { passwordHash: HR_HASH, role: 'hr' },
+      create: { username: 'hr_manager', email: 'HR@vn.com', passwordHash: HR_HASH, role: 'hr' }
     });
-
     const adminEmp = await prisma.employee.findUnique({ where: { email: 'admin@virtualnest.com' } });
     if (!adminEmp) {
-      await prisma.employee.create({
-        data: {
-          empId: 'EMP-ADMIN',
-          firstName: 'System',
-          lastName: 'Admin',
-          email: 'admin@virtualnest.com',
-          department: 'Administration',
-          designation: 'Administrator',
-          joinDate: new Date(),
-          salary: 0,
-          status: 'active'
-        }
-      });
+      await prisma.employee.create({ data: { empId: 'EMP-ADMIN', firstName: 'System', lastName: 'Admin', email: 'admin@virtualnest.com', department: 'Administration', designation: 'Administrator', joinDate: new Date(), salary: 0, status: 'active' } });
     }
-
     const hrEmp = await prisma.employee.findUnique({ where: { email: 'HR@vn.com' } });
     if (!hrEmp) {
-      await prisma.employee.create({
-        data: {
-          empId: 'EMP-HR',
-          firstName: 'HR',
-          lastName: 'Manager',
-          email: 'HR@vn.com',
-          department: 'Human Resources',
-          designation: 'HR Manager',
-          joinDate: new Date(),
-          salary: 0,
-          status: 'active'
-        }
-      });
+      await prisma.employee.create({ data: { empId: 'EMP-HR', firstName: 'HR', lastName: 'Manager', email: 'HR@vn.com', department: 'Human Resources', designation: 'HR Manager', joinDate: new Date(), salary: 0, status: 'active' } });
     }
-
-    console.log('[Auth] Admin/HR accounts and employee records verified.');
+    seeded = true;
+    console.log('[Auth] Default accounts seeded successfully.');
   } catch (err) {
-    console.error('[Auth] Failed to seed default accounts/employees:', err?.name, err?.message);
+    console.error('[Auth] Failed to seed default accounts:', err?.name, err?.message);
   }
 }
+
+// Run seed on startup (non-blocking)
+ensureDefaultAccountsExist();
 
 // POST /api/auth/register (admin/hr only)
 router.post('/register', authMiddleware, async (req, res) => {
@@ -115,7 +85,6 @@ router.post('/register', authMiddleware, async (req, res) => {
 // POST /api/auth/login
 router.post('/login', loginLimiter, async (req, res) => {
   try {
-    await ensureDefaultAccountsExist();
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
 
