@@ -8,7 +8,7 @@ export default function SettingsAdmin() {
   const [settings, setSettings] = useState({
     COMPANY_NAME: '',
     TIMEZONE: 'Asia/Kolkata',
-    WORK_HOURS_START: '09:00',
+    WORK_HOURS_START: '10:00',
     WORK_HOURS_END: '18:00',
   });
   const [loading, setLoading] = useState(true);
