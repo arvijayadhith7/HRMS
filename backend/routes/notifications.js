@@ -11,18 +11,12 @@ router.get('/', async (req, res) => {
     
     let allNotifs = [];
 
-    // Find matching employee by email (case insensitive matching)
-    const employees = await prisma.employee.findMany();
-    const employee = employees.find(e => e.email.toLowerCase().trim() === user.email.toLowerCase().trim());
-    
-    if (employee) {
-      const notifs = await prisma.notification.findMany({
-        where: { userId: employee.id },
-        orderBy: { createdAt: 'desc' },
-        take: 20
-      });
-      allNotifs = [...notifs];
-    }
+    const notifs = await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+    allNotifs = [...notifs];
     
     // If the logged in user is Admin or HR, also fetch pending queries from QueryBox
     if (user.role === 'admin' || user.role === 'hr') {
@@ -59,15 +53,10 @@ router.put('/read-all', async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
     if (!user) return res.json({ success: true });
 
-    const employees = await prisma.employee.findMany();
-    const employee = employees.find(e => e.email.toLowerCase().trim() === user.email.toLowerCase().trim());
-    
-    if (employee) {
-      await prisma.notification.updateMany({
-        where: { userId: employee.id, read: false },
-        data: { read: true }
-      });
-    }
+    await prisma.notification.updateMany({
+      where: { userId: user.id, read: false },
+      data: { read: true }
+    });
 
     if (user.role === 'admin' || user.role === 'hr') {
       await prisma.queryBox.updateMany({

@@ -158,19 +158,14 @@ router.post('/change-password', authMiddleware, async (req, res) => {
         where: { role: { in: ['admin', 'hr'] } }
       });
       for (const u of hrAdmins) {
-        const emp = await prisma.employee.findFirst({
-          where: { email: { equals: u.email, mode: 'insensitive' } }
+        await prisma.notification.create({
+          data: {
+            userId: u.id,
+            title: 'Security Alert: Password Changed',
+            message: `Employee "${user.username}" (${user.email}) has successfully changed their password.`,
+            type: 'warning'
+          }
         });
-        if (emp) {
-          await prisma.notification.create({
-            data: {
-              userId: emp.id,
-              title: 'Security Alert: Password Changed',
-              message: `Employee "${user.username}" (${user.email}) has successfully changed their password.`,
-              type: 'warning'
-            }
-          });
-        }
       }
     } catch (notifErr) {
       console.error('Failed to send password change notifications:', notifErr);

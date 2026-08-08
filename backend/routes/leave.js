@@ -117,19 +117,14 @@ router.post('/', async (req, res) => {
         where: { role: { in: ['admin', 'hr'] } }
       });
       for (const u of hrAndAdmins) {
-        const emp = await prisma.employee.findFirst({
-          where: { email: { equals: u.email, mode: 'insensitive' } }
+        await prisma.notification.create({
+          data: {
+            userId: u.id,
+            title: 'New Leave Request',
+            message: `${employee.firstName} ${employee.lastName} has applied for ${leaveType} leave from ${from.toLocaleDateString()} to ${to.toLocaleDateString()}.`,
+            type: 'info'
+          }
         });
-        if (emp) {
-          await prisma.notification.create({
-            data: {
-              userId: emp.id,
-              title: 'New Leave Request',
-              message: `${employee.firstName} ${employee.lastName} has applied for ${leaveType} leave from ${from.toLocaleDateString()} to ${to.toLocaleDateString()}.`,
-              type: 'info'
-            }
-          });
-        }
       }
     } catch (notifErr) {
       console.error('Failed to create leave application notifications:', notifErr);
@@ -163,14 +158,19 @@ router.put('/:id', async (req, res) => {
     });
 
     if (status === 'approved' || status === 'rejected') {
-      await prisma.notification.create({
-        data: {
-          userId: updated.employeeId,
-          title: `Leave Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-          message: `Your leave request from ${new Date(updated.fromDate).toLocaleDateString()} to ${new Date(updated.toDate).toLocaleDateString()} has been ${status}.`,
-          type: status === 'approved' ? 'success' : 'danger'
-        }
+      const employeeUser = await prisma.user.findFirst({
+        where: { email: { equals: updated.employee.email, mode: 'insensitive' } }
       });
+      if (employeeUser) {
+        await prisma.notification.create({
+          data: {
+            userId: employeeUser.id,
+            title: `Leave Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            message: `Your leave request from ${new Date(updated.fromDate).toLocaleDateString()} to ${new Date(updated.toDate).toLocaleDateString()} has been ${status}.`,
+            type: status === 'approved' ? 'success' : 'danger'
+          }
+        });
+      }
     }
 
     res.json(updated);
